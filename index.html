@@ -648,12 +648,31 @@
 
 <!-- CALENDAR TAB -->
 <div id="page-calendar" class="page">
-  <p class="section-label" id="cal-month-label"></p>
-  <div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <button onclick="calChangeMonth(-1)" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:18px;width:36px;height:36px;cursor:pointer;">‹</button>
+    <p class="section-label" id="cal-month-label" style="margin:0;font-size:13px;"></p>
+    <button onclick="calChangeMonth(1)" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:18px;width:36px;height:36px;cursor:pointer;">›</button>
+  </div>
+  <div class="card" style="padding:10px;">
     <div class="calendar-grid" id="cal-headers"></div>
     <div class="calendar-grid" id="cal-days"></div>
   </div>
-  <p style="font-size:12px;color:var(--text3);margin-top:12px;">Tap a day to assign a workout type. Sessions you log are highlighted automatically.</p>
+  <p style="font-size:12px;color:var(--text3);margin-top:12px;">Tap a day to view or edit. Logged sessions sync automatically.</p>
+
+  <!-- Day edit modal -->
+  <div id="cal-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;">
+    <div id="cal-modal" style="display:none;background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;padding-bottom:36px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div id="cal-modal-date" style="font-size:15px;font-weight:600;color:var(--text);"></div>
+        <button onclick="closeCalModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <p style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Logged sessions</p>
+      <div id="cal-modal-sessions" style="margin-bottom:16px;"></div>
+      <p style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Planned workout</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;" id="cal-type-btns"></div>
+      <button onclick="clearCalDay()" style="width:100%;background:none;border:1px solid var(--border2);border-radius:var(--radius);color:var(--text3);font-size:13px;font-weight:600;padding:10px;cursor:pointer;">Clear planned</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -974,7 +993,10 @@ function renderHistory() {
       ${s.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic;">"${s.notes.slice(0,80)}${s.notes.length>80?'…':''}"</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
         <div class="history-rating">${dots}</div>
-        <button onclick="editSession(${s.id})" style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;padding:4px 12px;cursor:pointer;">Edit</button>
+        <div style="display:flex;gap:6px;">
+          <button onclick="viewSession(${s.id})" style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;padding:4px 12px;cursor:pointer;">View</button>
+          <button onclick="editSession(${s.id})" style="background:var(--red-dim);border:1px solid rgba(192,57,43,0.3);border-radius:6px;color:#E57373;font-size:12px;padding:4px 12px;cursor:pointer;">Edit</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -984,6 +1006,98 @@ function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function viewSession(id) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s) return;
+  const t = s.type;
+
+  let detailHTML = '';
+
+  // Exercise sets
+  if (['A','B','C'].includes(t) && s.sets && Object.keys(s.sets).length) {
+    const exs = WORKOUT_EXERCISES[t];
+    const rows = exs.map((ex, i) => {
+      const sets = s.sets[i] || {};
+      const setVals = [1,2,3].map(n => sets[n] || '—').join(' · ');
+      if (!Object.values(sets).some(v=>v)) return '';
+      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text);flex:1;">${ex.name}</span>
+        <span style="font-size:12px;color:var(--text2);flex:1;text-align:right;">${setVals}</span>
+      </div>`;
+    }).filter(Boolean).join('');
+    if (rows) detailHTML += `<p class="section-label" style="margin-top:16px;">Exercises</p><div class="card" style="padding:8px 16px;">${rows}</div>`;
+  }
+
+  // Rounds
+  if ((t === 'BAG' || t === 'SPAR') && s.rounds?.length) {
+    const roundRows = s.rounds.filter(r => r.focus || r.intensity).map(r =>
+      `<div class="round-row" style="pointer-events:none;">
+        <div class="round-num">${r.round}</div>
+        <div style="font-size:13px;color:var(--text);padding:6px 0;">${r.focus || '—'}</div>
+        <div style="font-size:13px;color:var(--red);text-align:center;padding:6px 0;">${r.intensity || '—'}</div>
+      </div>`
+    ).join('');
+    if (roundRows) detailHTML += `<p class="section-label" style="margin-top:16px;">Rounds</p><div class="card" style="padding:8px 16px;">${roundRows}</div>`;
+  }
+
+  // Techniques
+  if (s.techniques?.length) {
+    detailHTML += `<p class="section-label" style="margin-top:16px;">Techniques drilled</p>
+    <div class="card"><div style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${s.techniques.map(t => `<span style="background:var(--red-dim);border:1px solid rgba(192,57,43,0.3);border-radius:6px;padding:4px 10px;font-size:12px;color:#E57373;">${t}</span>`).join('')}
+    </div></div>`;
+  }
+
+  // Zone 2
+  if (t === 'CAR' && s.zoneData && Object.keys(s.zoneData).length) {
+    const zoneRows = Object.entries(s.zoneData).map(([type, z]) =>
+      `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text);">${type}</span>
+        <span style="font-size:12px;color:var(--text2);">${z.focus || ''} ${z.duration ? z.duration+'min' : ''} ${z.rating ? '· '+z.rating+'/10' : ''}</span>
+      </div>`
+    ).join('');
+    detailHTML += `<p class="section-label" style="margin-top:16px;">Cardio log</p><div class="card" style="padding:8px 16px;">${zoneRows}</div>`;
+  }
+
+  // Notes
+  if (s.notes) {
+    detailHTML += `<p class="section-label" style="margin-top:16px;">Notes</p>
+    <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;">${s.notes}</p></div>`;
+  }
+
+  const ratingDots = Array.from({length:10}, (_,i) =>
+    `<div class="rating-dot${i < s.rating ? ' filled' : ''}"></div>`
+  ).join('');
+
+  const modalHTML = `
+  <div id="edit-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;overflow-y:auto;padding:20px;">
+    <div style="background:var(--bg);border-radius:var(--radius);max-width:480px;margin:0 auto;padding:20px;padding-bottom:40px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:16px;font-weight:600;color:var(--text);">${TYPE_LABELS[t]}</div>
+        <button onclick="closeEditModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">${formatDate(s.date)}${s.time ? ' · '+s.time : ''}</div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">
+        ${s.bodyWeight ? `<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Weight</div><div style="font-size:16px;font-weight:600;color:var(--text);">${s.bodyWeight}kg</div></div>` : ''}
+        ${s.energy ? `<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Energy</div><div style="font-size:16px;font-weight:600;color:var(--text);">${s.energy}/10</div></div>` : ''}
+        ${s.sleep ? `<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Sleep</div><div style="font-size:16px;font-weight:600;color:var(--text);">${s.sleep}h</div></div>` : ''}
+      </div>
+
+      ${detailHTML}
+
+      ${s.rating ? `<p class="section-label" style="margin-top:16px;">Session rating</p>
+      <div class="card"><div class="history-rating" style="justify-content:flex-start;">${ratingDots}</div></div>` : ''}
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="closeEditModal();editSession(${id});" style="flex:1;background:var(--red);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">Edit session</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
 function editSession(id) {
@@ -1176,10 +1290,20 @@ function saveProgressEntry(inp) {
   saveProgress(p);
 }
 
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth();
+let calModalDate = null;
+
+function calChangeMonth(dir) {
+  calViewMonth += dir;
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  if (calViewMonth < 0)  { calViewMonth = 11; calViewYear--; }
+  renderCalendar();
+}
+
 function renderCalendar() {
-  const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth();
-  const label = now.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  const year = calViewYear, month = calViewMonth;
+  const label = new Date(year, month, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
   document.getElementById('cal-month-label').textContent = label;
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   document.getElementById('cal-headers').innerHTML = days.map(d => `<div class="cal-day-header">${d}</div>`).join('');
@@ -1188,37 +1312,106 @@ function renderCalendar() {
   let startDay = first.getDay();
   if (startDay === 0) startDay = 7;
   const totalDays = new Date(year, month+1, 0).getDate();
+
+  // Build session map from logged sessions
+  const sessions = getSessions();
+  const sessionMap = {};
+  sessions.forEach(s => {
+    if (!sessionMap[s.date]) sessionMap[s.date] = [];
+    if (!sessionMap[s.date].includes(s.type)) sessionMap[s.date].push(s.type);
+  });
+
   const cal = getCalendar();
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = new Date().toISOString().slice(0,10);
 
   let html = '';
   for (let i = 1; i < startDay; i++) html += `<div class="cal-empty"></div>`;
   for (let d = 1; d <= totalDays; d++) {
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const workouts = cal[dateStr] || [];
+    const logged = sessionMap[dateStr] || [];
+    const planned = cal[dateStr] || [];
+    const allTypes = [...new Set([...logged, ...planned])];
     const isToday = dateStr === todayStr;
-    html += `<div class="cal-day${isToday?' today':''}${workouts.length?' has-workout':''}" onclick="calTap('${dateStr}')">
+    const hasActivity = allTypes.length > 0;
+    html += `<div class="cal-day${isToday?' today':''}${hasActivity?' has-workout':''}" onclick="calTap('${dateStr}')">
       <span class="cal-day-num">${d}</span>
-      ${workouts.map(w => `<span class="cal-day-code">${w}</span>`).join('')}
+      ${allTypes.slice(0,2).map(w => `<span class="cal-day-code">${w}</span>`).join('')}
+      ${allTypes.length > 2 ? `<span class="cal-day-code">+${allTypes.length-2}</span>` : ''}
     </div>`;
   }
   document.getElementById('cal-days').innerHTML = html;
 }
 
 function calTap(dateStr) {
-  const types = ['A','B','C','BAG','SPAR','CAR','REST'];
+  calModalDate = dateStr;
+  const sessions = getSessions().filter(s => s.date === dateStr);
   const cal = getCalendar();
-  const current = cal[dateStr] || [];
-  const choice = prompt(`Set workout for ${dateStr}.\nOptions: ${types.join(', ')}\nCurrent: ${current.join(', ') || 'none'}\n\nEnter code(s) comma-separated, or leave blank to clear:`);
-  if (choice === null) return;
-  const entered = choice.split(',').map(x => x.trim().toUpperCase()).filter(x => types.includes(x));
-  if (entered.length) {
-    cal[dateStr] = entered;
+  const planned = cal[dateStr] || [];
+  const types = ['A','B','C','BAG','SPAR','CAR','REST'];
+
+  // Format date nicely
+  const d = new Date(dateStr + 'T00:00:00');
+  document.getElementById('cal-modal-date').textContent = d.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'});
+
+  // Show logged sessions
+  const sessEl = document.getElementById('cal-modal-sessions');
+  if (sessions.length) {
+    sessEl.innerHTML = sessions.map(s => `
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+        <span style="font-size:13px;color:var(--text);">${TYPE_LABELS[s.type]}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${s.rating ? `<span style="font-size:12px;color:var(--red);">${s.rating}/10</span>` : ''}
+          <button onclick="editSession(${s.id});closeCalModal();" style="background:none;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:11px;padding:3px 8px;cursor:pointer;">Edit</button>
+        </div>
+      </div>`).join('');
   } else {
-    delete cal[dateStr];
+    sessEl.innerHTML = `<div style="font-size:13px;color:var(--text3);padding:4px 0;">No sessions logged</div>`;
   }
+
+  // Workout type buttons
+  document.getElementById('cal-type-btns').innerHTML = types.map(t => `
+    <button onclick="toggleCalType('${t}')" id="cal-btn-${t}" style="background:${planned.includes(t)?'var(--red)':'var(--bg3)'};border:1px solid ${planned.includes(t)?'var(--red)':'var(--border)'};border-radius:8px;color:${planned.includes(t)?'white':'var(--text2)'};font-size:11px;font-weight:600;padding:8px 4px;cursor:pointer;">${t}</button>
+  `).join('');
+
+  // Show modal
+  const bg = document.getElementById('cal-modal-bg');
+  const modal = document.getElementById('cal-modal');
+  bg.style.display = 'flex';
+  modal.style.display = 'block';
+}
+
+function toggleCalType(type) {
+  const cal = getCalendar();
+  const planned = cal[calModalDate] || [];
+  const idx = planned.indexOf(type);
+  if (idx > -1) planned.splice(idx, 1);
+  else planned.push(type);
+  if (planned.length) cal[calModalDate] = planned;
+  else delete cal[calModalDate];
   saveCalendar(cal);
   renderCalendar();
+  // Update button appearance
+  const btn = document.getElementById('cal-btn-' + type);
+  if (btn) {
+    const active = (cal[calModalDate] || []).includes(type);
+    btn.style.background = active ? 'var(--red)' : 'var(--bg3)';
+    btn.style.borderColor = active ? 'var(--red)' : 'var(--border)';
+    btn.style.color = active ? 'white' : 'var(--text2)';
+  }
+}
+
+function clearCalDay() {
+  const cal = getCalendar();
+  delete cal[calModalDate];
+  saveCalendar(cal);
+  renderCalendar();
+  closeCalModal();
+  showToast('Planned workout cleared');
+}
+
+function closeCalModal() {
+  document.getElementById('cal-modal-bg').style.display = 'none';
+  document.getElementById('cal-modal').style.display = 'none';
 }
 
 updateStreak();
