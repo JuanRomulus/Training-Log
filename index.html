@@ -417,9 +417,17 @@
   }
   .progress-exercise-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
   .progress-weeks {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-direction: row;
     gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .progress-weeks::-webkit-scrollbar { display: none; }
+  .progress-week {
+    flex-shrink: 0;
+    width: 54px;
   }
   .progress-week label {
     display: block;
@@ -1273,6 +1281,41 @@ function deleteSession(id) {
   updateStreak();
 }
 
+function getWeekCount(wt, ex) {
+  const p = getProgress()[wt] || {};
+  const weeks = p[ex] || {};
+  const nums = Object.keys(weeks).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
+  return nums.length > 0 ? Math.max(...nums) : 0;
+}
+
+function addProgressWeek(wt, ex) {
+  const p = getProgress();
+  if (!p[wt]) p[wt] = {};
+  if (!p[wt][ex]) p[wt][ex] = {};
+  const nums = Object.keys(p[wt][ex]).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
+  const nextWeek = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  p[wt][ex][nextWeek] = '';
+  saveProgress(p);
+  renderProgress();
+  // Scroll the new week into view
+  setTimeout(() => {
+    const row = document.querySelector(`[data-wt="${wt}"][data-ex="${ex}"][data-week="${nextWeek}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', inline: 'end' });
+  }, 50);
+}
+
+function deleteProgressWeek(wt, ex) {
+  const p = getProgress();
+  if (!p[wt]?.[ex]) return;
+  const nums = Object.keys(p[wt][ex]).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
+  if (nums.length === 0) return;
+  if (!confirm('Delete the last week entry for this exercise?')) return;
+  const last = Math.max(...nums);
+  delete p[wt][ex][last];
+  saveProgress(p);
+  renderProgress();
+}
+
 function renderProgress() {
   ['A','B','C'].forEach(wt => {
     const el = document.getElementById('progress-' + wt);
@@ -1280,23 +1323,39 @@ function renderProgress() {
     const exs = WORKOUT_EXERCISES[wt];
     el.innerHTML = exs.map((ex, i) => {
       const weeks = p[i] || {};
-      const vals = [1,2,3,4,5].map(w => weeks[w] || '');
-      const pb = p[i]?.pb || '';
+      const nums = Object.keys(weeks).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
+      // Always show at least 5 weeks
+      const maxWeek = Math.max(5, nums.length > 0 ? Math.max(...nums) : 0);
+      const allWeeks = Array.from({length: maxWeek}, (_, i) => i + 1);
+      const pb = weeks.pb || '';
       return `<div class="progress-exercise">
-        <div class="progress-exercise-name">${ex.name}${pb ? `<span class="pb-badge">PB: ${pb}</span>` : ''}</div>
-        <div class="progress-weeks">
-          ${[1,2,3,4,5].map(w => `<div class="progress-week">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="progress-exercise-name" style="margin-bottom:0;">${ex.name}${pb ? `<span class="pb-badge">PB: ${pb}</span>` : ''}</div>
+          <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px;">
+            <button onclick="deleteProgressWeek('${wt}',${i})" style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">−</button>
+            <button onclick="addProgressWeek('${wt}',${i})" style="background:var(--red-dim);border:1px solid rgba(192,57,43,0.3);border-radius:6px;color:#E57373;font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">+</button>
+          </div>
+        </div>
+        <div class="progress-weeks" id="pw-${wt}-${i}">
+          ${allWeeks.map(w => `<div class="progress-week">
             <label>Wk ${w}</label>
-            <input type="text" value="${vals[w-1]}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${w}" onchange="saveProgressEntry(this)">
+            <input type="text" value="${weeks[w]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${w}" onchange="saveProgressEntry(this)">
           </div>`).join('')}
         </div>
         <div style="margin-top:8px;">
           <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Personal best</label>
-          <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);" 
+          <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);"
             placeholder="e.g. 90kg / 10 reps" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
         </div>
       </div>`;
     }).join('');
+
+    // Scroll each exercise to the latest week after render
+    setTimeout(() => {
+      el.querySelectorAll('.progress-weeks').forEach(row => {
+        row.scrollLeft = row.scrollWidth;
+      });
+    }, 50);
   });
 }
 
