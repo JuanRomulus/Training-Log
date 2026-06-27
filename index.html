@@ -663,12 +663,25 @@
 
 <!-- PROGRESS TAB -->
 <div id="page-progress" class="page">
-  <p class="section-label">Workout A — Personal records</p>
-  <div id="progress-A"></div>
-  <p class="section-label">Workout B — Personal records</p>
-  <div id="progress-B"></div>
-  <p class="section-label">Workout C — Personal records</p>
-  <div id="progress-C"></div>
+  <!-- Workout selector -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;">
+    <button onclick="selectProgressWorkout('A')" id="pw-tab-A" class="tab-btn active" style="flex:1;">Workout A</button>
+    <button onclick="selectProgressWorkout('B')" id="pw-tab-B" class="tab-btn" style="flex:1;">Workout B</button>
+    <button onclick="selectProgressWorkout('C')" id="pw-tab-C" class="tab-btn" style="flex:1;">Workout C</button>
+  </div>
+  <div id="progress-exercises"></div>
+
+  <!-- Log session modal -->
+  <div id="prog-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;overflow-y:auto;padding:20px;">
+    <div id="prog-modal" style="background:var(--bg);border-radius:var(--radius);max-width:480px;margin:0 auto;padding:20px;padding-bottom:36px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div id="prog-modal-title" style="font-size:15px;font-weight:600;color:var(--text);"></div>
+        <button onclick="closeProgModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;">×</button>
+      </div>
+      <div id="prog-modal-body"></div>
+      <button onclick="saveProgSession()" style="width:100%;background:var(--red);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:600;padding:14px;cursor:pointer;margin-top:16px;">Save session</button>
+    </div>
+  </div>
 </div>
 
 <!-- CALENDAR TAB -->
@@ -1281,92 +1294,186 @@ function deleteSession(id) {
   updateStreak();
 }
 
-function getWeekCount(wt, ex) {
-  const p = getProgress()[wt] || {};
-  const weeks = p[ex] || {};
-  const nums = Object.keys(weeks).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
-  return nums.length > 0 ? Math.max(...nums) : 0;
-}
+let currentProgressWorkout = 'A';
+let progModalWorkout = null;
+let progModalExIndex = null;
 
-function addProgressWeek(wt, ex) {
-  const p = getProgress();
-  if (!p[wt]) p[wt] = {};
-  if (!p[wt][ex]) p[wt][ex] = {};
-  const nums = Object.keys(p[wt][ex]).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
-  const nextWeek = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-  p[wt][ex][nextWeek] = '';
-  saveProgress(p);
-  renderProgress();
-  // Scroll the new week into view
-  setTimeout(() => {
-    const row = document.querySelector(`[data-wt="${wt}"][data-ex="${ex}"][data-week="${nextWeek}"]`);
-    if (row) row.scrollIntoView({ behavior: 'smooth', inline: 'end' });
-  }, 50);
-}
-
-function deleteProgressWeek(wt, ex) {
-  const p = getProgress();
-  if (!p[wt]?.[ex]) return;
-  const nums = Object.keys(p[wt][ex]).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n));
-  if (nums.length === 0) return;
-  if (!confirm('Delete the last week entry for this exercise?')) return;
-  const last = Math.max(...nums);
-  delete p[wt][ex][last];
-  saveProgress(p);
+function selectProgressWorkout(wt) {
+  currentProgressWorkout = wt;
+  ['A','B','C'].forEach(t => {
+    const btn = document.getElementById('pw-tab-' + t);
+    if (btn) btn.classList.toggle('active', t === wt);
+  });
   renderProgress();
 }
 
 function renderProgress() {
-  ['A','B','C'].forEach(wt => {
-    const el = document.getElementById('progress-' + wt);
-    const p = getProgress()[wt] || {};
-    const exs = WORKOUT_EXERCISES[wt];
-    el.innerHTML = exs.map((ex, i) => {
-      const weeks = p[i] || {};
-      const nums = Object.keys(weeks).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
-      // Always show at least 5 weeks
-      const maxWeek = Math.max(5, nums.length > 0 ? Math.max(...nums) : 0);
-      const allWeeks = Array.from({length: maxWeek}, (_, i) => i + 1);
-      const pb = weeks.pb || '';
-      return `<div class="progress-exercise">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="progress-exercise-name" style="margin-bottom:0;">${ex.name}${pb ? `<span class="pb-badge">PB: ${pb}</span>` : ''}</div>
-          <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px;">
-            <button onclick="deleteProgressWeek('${wt}',${i})" style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">−</button>
-            <button onclick="addProgressWeek('${wt}',${i})" style="background:var(--red-dim);border:1px solid rgba(192,57,43,0.3);border-radius:6px;color:#E57373;font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">+</button>
-          </div>
-        </div>
-        <div class="progress-weeks" id="pw-${wt}-${i}">
-          ${allWeeks.map(w => `<div class="progress-week">
-            <label>Wk ${w}</label>
-            <input type="text" value="${weeks[w]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${w}" onchange="saveProgressEntry(this)">
-          </div>`).join('')}
-        </div>
-        <div style="margin-top:8px;">
-          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Personal best</label>
-          <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);"
-            placeholder="e.g. 90kg / 10 reps" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
-        </div>
-      </div>`;
-    }).join('');
+  const wt = currentProgressWorkout;
+  const el = document.getElementById('progress-exercises');
+  const p = getProgress()[wt] || {};
+  const exs = WORKOUT_EXERCISES[wt];
 
-    // Scroll each exercise to the latest week after render
-    setTimeout(() => {
-      el.querySelectorAll('.progress-weeks').forEach(row => {
-        row.scrollLeft = row.scrollWidth;
-      });
-    }, 50);
-  });
+  el.innerHTML = exs.map((ex, i) => {
+    const sessions = (p[i] && p[i].sessions) ? [...p[i].sessions].reverse() : [];
+    const pb = p[i]?.pb || null;
+
+    // Build PB display
+    let pbHtml = '';
+    if (pb) {
+      pbHtml = `<span class="pb-badge">PB: ${pb.weight}kg × ${pb.reps} (${pb.date})</span>`;
+    }
+
+    // Last 3 sessions preview
+    let historyHtml = '';
+    if (sessions.length) {
+      historyHtml = sessions.slice(0, 3).map(s => {
+        const sets = s.sets.map((set, si) =>
+          `<span style="font-size:11px;color:var(--text2);">S${si+1}: ${set.weight||'—'}kg×${set.reps||'—'}</span>`
+        ).join('<span style="color:var(--text3);margin:0 4px;">·</span>');
+        return `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--text3);">${s.date}</span>
+            <button onclick="deleteProgSession('${wt}',${i},'${s.id}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0;">×</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${sets}</div>
+        </div>`;
+      }).join('');
+      if (sessions.length > 3) {
+        historyHtml += `<div style="font-size:12px;color:var(--text3);text-align:center;padding:4px 0;">${sessions.length - 3} older sessions hidden</div>`;
+      }
+    } else {
+      historyHtml = `<div style="font-size:13px;color:var(--text3);padding:6px 0;">No sessions logged yet</div>`;
+    }
+
+    return `<div class="progress-exercise">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div class="progress-exercise-name" style="margin-bottom:3px;">${ex.name}</div>
+          <div style="font-size:11px;color:var(--red);font-weight:600;">${ex.reps}</div>
+          ${pbHtml}
+        </div>
+        <button onclick="openProgModal('${wt}',${i})" style="flex-shrink:0;background:var(--red);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;margin-left:10px;">+ Log</button>
+      </div>
+      <div>${historyHtml}</div>
+    </div>`;
+  }).join('');
 }
 
-function saveProgressEntry(inp) {
-  const wt = inp.dataset.wt, ex = inp.dataset.ex, week = inp.dataset.week;
+function openProgModal(wt, exIdx) {
+  progModalWorkout = wt;
+  progModalExIndex = exIdx;
+  const ex = WORKOUT_EXERCISES[wt][exIdx];
+  document.getElementById('prog-modal-title').textContent = ex.name;
+
+  const today = new Date().toISOString().slice(0,10);
+  let body = `<div class="info-field" style="margin-bottom:14px;">
+    <label style="display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Date</label>
+    <input type="date" id="prog-date" value="${today}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;font-family:var(--font);">
+  </div>`;
+
+  body += `<p style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Sets — weight (kg) × reps</p>`;
+
+  for (let s = 1; s <= 3; s++) {
+    body += `<div style="display:grid;grid-template-columns:28px 1fr 16px 1fr;gap:8px;align-items:center;margin-bottom:10px;">
+      <div style="width:28px;height:28px;background:var(--bg4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--red);">${s}</div>
+      <div>
+        <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Weight (kg)</label>
+        <input type="number" id="prog-s${s}-weight" placeholder="0" step="0.5" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:7px 8px;outline:none;font-family:var(--font);">
+      </div>
+      <div style="text-align:center;color:var(--text3);font-size:14px;margin-top:14px;">×</div>
+      <div>
+        <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Reps</label>
+        <input type="number" id="prog-s${s}-reps" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:7px 8px;outline:none;font-family:var(--font);">
+      </div>
+    </div>`;
+  }
+
+  body += `<div class="info-field" style="margin-top:4px;">
+    <label style="display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Notes</label>
+    <textarea id="prog-notes" placeholder="Form cues, how it felt…" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;font-family:var(--font);resize:vertical;min-height:56px;"></textarea>
+  </div>`;
+
+  document.getElementById('prog-modal-body').innerHTML = body;
+  document.getElementById('prog-modal-bg').style.display = 'block';
+}
+
+function closeProgModal() {
+  document.getElementById('prog-modal-bg').style.display = 'none';
+  progModalWorkout = null;
+  progModalExIndex = null;
+}
+
+function saveProgSession() {
+  const wt = progModalWorkout;
+  const exIdx = progModalExIndex;
+  if (wt === null || exIdx === null) return;
+
+  const date = document.getElementById('prog-date')?.value || new Date().toISOString().slice(0,10);
+  const notes = document.getElementById('prog-notes')?.value || '';
+
+  const sets = [1,2,3].map(s => ({
+    weight: document.getElementById(`prog-s${s}-weight`)?.value || '',
+    reps: document.getElementById(`prog-s${s}-reps`)?.value || ''
+  }));
+
+  const session = {
+    id: Date.now().toString(),
+    date,
+    notes,
+    sets
+  };
+
   const p = getProgress();
   if (!p[wt]) p[wt] = {};
-  if (!p[wt][ex]) p[wt][ex] = {};
-  p[wt][ex][week] = inp.value;
+  if (!p[wt][exIdx]) p[wt][exIdx] = { sessions: [], pb: null };
+  if (!p[wt][exIdx].sessions) p[wt][exIdx].sessions = [];
+
+  p[wt][exIdx].sessions.push(session);
+
+  // Auto-calculate PB (best weight × reps single set)
+  let bestScore = 0, bestPB = p[wt][exIdx].pb;
+  p[wt][exIdx].sessions.forEach(s => {
+    s.sets.forEach(set => {
+      const score = (parseFloat(set.weight)||0) * (parseFloat(set.reps)||0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestPB = { weight: set.weight, reps: set.reps, date: s.date };
+      }
+    });
+  });
+  p[wt][exIdx].pb = bestPB;
+
   saveProgress(p);
+  closeProgModal();
+  showToast('Session logged ✓');
+  renderProgress();
 }
+
+function deleteProgSession(wt, exIdx, sessionId) {
+  if (!confirm('Delete this session entry?')) return;
+  const p = getProgress();
+  if (!p[wt]?.[exIdx]?.sessions) return;
+  p[wt][exIdx].sessions = p[wt][exIdx].sessions.filter(s => s.id !== sessionId);
+
+  // Recalculate PB
+  let bestScore = 0, bestPB = null;
+  p[wt][exIdx].sessions.forEach(s => {
+    s.sets.forEach(set => {
+      const score = (parseFloat(set.weight)||0) * (parseFloat(set.reps)||0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestPB = { weight: set.weight, reps: set.reps, date: s.date };
+      }
+    });
+  });
+  p[wt][exIdx].pb = bestPB;
+
+  saveProgress(p);
+  renderProgress();
+  showToast('Entry deleted');
+}
+
+
 
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth();
