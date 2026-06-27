@@ -961,14 +961,17 @@ function renderHistory() {
     const techCount = s.techniques?.length || 0;
     const techStr = techCount ? `  •  ${techCount} techniques` : '';
     const roundStr = s.rounds?.filter(r=>r.focus).length ? `  •  ${s.rounds.filter(r=>r.focus).length} rds` : '';
-    return `<div class="history-item" onclick="viewSession(${s.id})">
+    return `<div class="history-item">
       <div class="history-item-header">
         <span class="history-type">${TYPE_LABELS[s.type] || s.type}</span>
         <span class="history-date">${formatDate(s.date)}</span>
       </div>
       <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}</div>
       ${s.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic;">"${s.notes.slice(0,80)}${s.notes.length>80?'…':''}"</div>` : ''}
-      <div class="history-rating">${dots}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <div class="history-rating">${dots}</div>
+        <button onclick="editSession(${s.id})" style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;padding:4px 12px;cursor:pointer;">Edit</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -979,17 +982,158 @@ function formatDate(iso) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function viewSession(id) {
+function editSession(id) {
   const s = getSessions().find(x => x.id === id);
   if (!s) return;
-  let info = `${TYPE_LABELS[s.type]} — ${formatDate(s.date)}\n`;
-  if (s.bodyWeight) info += `Body weight: ${s.bodyWeight}kg | `;
-  if (s.energy) info += `Energy: ${s.energy}/10 | `;
-  if (s.sleep) info += `Sleep: ${s.sleep}h\n`;
-  if (s.rating) info += `Rating: ${s.rating}/10\n`;
-  if (s.notes) info += `\nNotes: ${s.notes}`;
-  if (s.techniques?.length) info += `\n\nTechniques: ${s.techniques.join(', ')}`;
-  alert(info);
+
+  const t = s.type;
+  let exerciseRows = '';
+  if (['A','B','C'].includes(t)) {
+    exerciseRows = `<p class="section-label" style="margin-top:16px;">Exercise log</p><div class="card">` +
+      WORKOUT_EXERCISES[t].map((ex, i) => {
+        const sets = s.sets?.[i] || {};
+        return `<div class="exercise-row">
+          <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span></div>
+          <div class="sets-grid">
+            ${[1,2,3].map(n => `<div class="set-input-wrap"><label>Set ${n}</label><input type="text" value="${sets[n]||''}" placeholder="kg / reps" data-ex="${i}" data-set="${n}" class="edit-set-inp"></div>`).join('')}
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  }
+
+  let roundRows = '';
+  if (t === 'BAG' || t === 'SPAR') {
+    const total = t === 'BAG' ? 8 : 6;
+    roundRows = `<p class="section-label" style="margin-top:16px;">${t === 'BAG' ? 'Round log (8 rounds)' : 'Sparring rounds (6)'}</p><div class="card">` +
+      Array.from({length: total}, (_, i) => {
+        const r = s.rounds?.[i] || {};
+        return `<div class="round-row">
+          <div class="round-num">${i+1}</div>
+          <input class="round-input edit-round-focus" type="text" value="${r.focus||''}" placeholder="Focus / notes" data-round="${i+1}" data-field="focus">
+          <input class="round-intensity edit-round-intensity" type="number" min="1" max="10" value="${r.intensity||''}" placeholder="1–10" data-round="${i+1}" data-field="intensity">
+        </div>`;
+      }).join('') + `</div>`;
+  }
+
+  let techRows = '';
+  const techList = t === 'BAG' ? TECHNIQUES_BAG : t === 'SPAR' ? TECHNIQUES_SPAR : [];
+  if (techList.length) {
+    techRows = `<p class="section-label" style="margin-top:16px;">Techniques</p><div class="card"><div class="technique-grid">` +
+      techList.map(tech => {
+        const checked = s.techniques?.includes(tech);
+        return `<div class="tech-check${checked?' checked':''}" onclick="toggleTech(this,'${tech}')" data-tech="${tech}">
+          <div class="tech-check-box"><span class="tech-check-tick">✓</span></div>
+          <span class="tech-check-label">${tech}</span>
+        </div>`;
+      }).join('') + `</div></div>`;
+  }
+
+  const ratingBtns = Array.from({length:10}, (_,i) => {
+    const n = i+1;
+    return `<button class="rating-btn${n <= s.rating ? ' selected':''}" onclick="setEditRating(${n},${id})" id="edit-rat-${n}">${n}</button>`;
+  }).join('');
+
+  const modalHTML = `
+  <div id="edit-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;overflow-y:auto;padding:20px;">
+    <div style="background:var(--bg);border-radius:var(--radius);max-width:480px;margin:0 auto;padding:20px;padding-bottom:40px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:16px;font-weight:600;color:var(--text);">${TYPE_LABELS[t]} — Edit</div>
+        <button onclick="closeEditModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <p class="section-label">Session info</p>
+      <div class="card">
+        <div class="info-grid">
+          <div class="info-field"><label>Date</label><input type="date" id="edit-date" value="${s.date||''}"></div>
+          <div class="info-field"><label>Start time</label><input type="time" id="edit-time" value="${s.time||''}"></div>
+          <div class="info-field"><label>Body weight (kg)</label><input type="number" id="edit-bw" value="${s.bodyWeight||''}" placeholder="e.g. 82"></div>
+          <div class="info-field"><label>Energy (1–10)</label><input type="number" min="1" max="10" id="edit-energy" value="${s.energy||''}" placeholder="7"></div>
+          <div class="info-field" style="grid-column:1/-1"><label>Sleep (hrs)</label><input type="number" id="edit-sleep" value="${s.sleep||''}" placeholder="7.5" step="0.5"></div>
+        </div>
+      </div>
+      ${exerciseRows}
+      ${roundRows}
+      ${techRows}
+      <p class="section-label" style="margin-top:16px;">Notes & rating</p>
+      <div class="card">
+        <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="edit-notes" placeholder="Observations…">${s.notes||''}</textarea></div>
+        <div class="rating-row">
+          <span class="rating-label">Rating:</span>
+          ${ratingBtns}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="deleteSession(${id})" style="flex:1;background:none;border:1px solid var(--border2);border-radius:var(--radius);color:var(--text3);font-size:14px;font-weight:600;padding:13px;cursor:pointer;">Delete</button>
+        <button onclick="saveEditSession(${id})" style="flex:2;background:var(--red);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">Save changes</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  window._editTechniques = [...(s.techniques || [])];
+  window._editRating = s.rating || 0;
+}
+
+function setEditRating(n, id) {
+  window._editRating = n;
+  document.querySelectorAll('[id^="edit-rat-"]').forEach((b, i) => {
+    b.classList.toggle('selected', i < n);
+  });
+}
+
+function closeEditModal() {
+  const m = document.getElementById('edit-modal-bg');
+  if (m) m.remove();
+}
+
+function saveEditSession(id) {
+  const sessions = getSessions();
+  const idx = sessions.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const s = sessions[idx];
+
+  s.date = document.getElementById('edit-date')?.value || s.date;
+  s.time = document.getElementById('edit-time')?.value || s.time;
+  s.bodyWeight = document.getElementById('edit-bw')?.value || '';
+  s.energy = document.getElementById('edit-energy')?.value || '';
+  s.sleep = document.getElementById('edit-sleep')?.value || '';
+  s.notes = document.getElementById('edit-notes')?.value || '';
+  s.rating = window._editRating || s.rating;
+  s.techniques = [...(window._editTechniques || [])];
+
+  if (['A','B','C'].includes(s.type)) {
+    s.sets = {};
+    document.querySelectorAll('.edit-set-inp').forEach(inp => {
+      const ex = inp.dataset.ex, n = inp.dataset.set;
+      if (!s.sets[ex]) s.sets[ex] = {};
+      s.sets[ex][n] = inp.value;
+    });
+  }
+
+  if (s.type === 'BAG' || s.type === 'SPAR') {
+    const total = s.type === 'BAG' ? 8 : 6;
+    s.rounds = [];
+    for (let r = 1; r <= total; r++) {
+      const focus = document.querySelector(`.edit-round-focus[data-round="${r}"]`)?.value || '';
+      const intensity = document.querySelector(`.edit-round-intensity[data-round="${r}"]`)?.value || '';
+      s.rounds.push({ round: r, focus, intensity });
+    }
+  }
+
+  sessions[idx] = s;
+  saveSessions(sessions);
+  closeEditModal();
+  showToast('Session updated ✓');
+  renderHistory();
+}
+
+function deleteSession(id) {
+  if (!confirm('Delete this session? This cannot be undone.')) return;
+  const sessions = getSessions().filter(x => x.id !== id);
+  saveSessions(sessions);
+  closeEditModal();
+  showToast('Session deleted');
+  renderHistory();
+  updateStreak();
 }
 
 function renderProgress() {
