@@ -1473,6 +1473,14 @@ function importData(event) {
       if (data.calendar) saveCalendar(data.calendar);
       updateStreak();
 document.addEventListener('DOMContentLoaded', function() { const wm = document.getElementById('fighter-watermark'); if(wm) wm.style.display='none'; });
+// Register service worker for offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
       renderHistory();
       showToast(`Imported ${newSessions.length} new sessions ✓`);
     } catch(err) {
