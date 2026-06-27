@@ -624,6 +624,10 @@
 <!-- HISTORY TAB -->
 <div id="page-history" class="page">
   <p class="section-label">Past sessions</p>
+  <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <button onclick="exportData()" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-size:13px;font-weight:600;padding:10px;cursor:pointer;">&#11015; Export to file</button>
+    <label style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-size:13px;font-weight:600;padding:10px;cursor:pointer;text-align:center;">&#11014; Import from file<input type="file" accept=".json" onchange="importData(event)" style="display:none;"></label>
+  </div>
   <div id="history-list">
     <div class="empty-state">
       <div class="empty-icon">📋</div>
@@ -1218,6 +1222,54 @@ function calTap(dateStr) {
 }
 
 updateStreak();
+function exportData() {
+  const data = {
+    sessions: getSessions(),
+    progress: getProgress(),
+    calendar: getCalendar(),
+    exportedAt: new Date().toISOString()
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `training-log-backup-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup saved to Downloads ✓');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.sessions) { showToast('Invalid backup file'); return; }
+      if (!confirm(`This will merge ${data.sessions.length} sessions from the backup with your existing data. Continue?`)) return;
+      const existing = getSessions();
+      const existingIds = new Set(existing.map(s => s.id));
+      const newSessions = data.sessions.filter(s => !existingIds.has(s.id));
+      const merged = [...existing, ...newSessions].sort((a,b) => new Date(b.date) - new Date(a.date));
+      saveSessions(merged);
+      if (data.progress) saveProgress(data.progress);
+      if (data.calendar) saveCalendar(data.calendar);
+      updateStreak();
+      renderHistory();
+      showToast(`Imported ${newSessions.length} new sessions ✓`);
+    } catch(err) {
+      showToast('Could not read backup file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
 </script>
 </body>
 </html>
