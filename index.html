@@ -1307,6 +1307,9 @@ function selectProgressWorkout(wt) {
   renderProgress();
 }
 
+// Chart state — track which metric each exercise card is showing
+const chartMode = {}; // key: wt+exIdx -> 'weight' | 'volume'
+
 function renderProgress() {
   const wt = currentProgressWorkout;
   const el = document.getElementById('progress-exercises');
@@ -1314,19 +1317,92 @@ function renderProgress() {
   const exs = WORKOUT_EXERCISES[wt];
 
   el.innerHTML = exs.map((ex, i) => {
-    const sessions = (p[i] && p[i].sessions) ? [...p[i].sessions].reverse() : [];
+    const sessions = (p[i] && p[i].sessions) ? [...p[i].sessions] : [];
+    const sessionsSorted = [...sessions].sort((a,b) => a.date.localeCompare(b.date));
+    const sessionsDisplay = [...sessions].sort((a,b) => b.date.localeCompare(a.date));
     const pb = p[i]?.pb || null;
+    const key = wt + i;
+    if (!chartMode[key]) chartMode[key] = 'weight';
 
-    // Build PB display
-    let pbHtml = '';
-    if (pb) {
-      pbHtml = `<span class="pb-badge">PB: ${pb.weight}kg × ${pb.reps} (${pb.date})</span>`;
+    let pbHtml = pb ? `<span class="pb-badge">PB: ${pb.weight}kg × ${pb.reps} (${pb.date})</span>` : '';
+
+    // Chart
+    let chartHtml = '';
+    if (sessionsSorted.length >= 2) {
+      const mode = chartMode[key];
+      const dataPoints = sessionsSorted.map(s => {
+        if (mode === 'weight') {
+          const weights = s.sets.map(set => parseFloat(set.weight)||0);
+          return { date: s.date, val: Math.max(...weights) };
+        } else {
+          const vol = s.sets.reduce((sum, set) => sum + (parseFloat(set.weight)||0) * (parseFloat(set.reps)||0), 0);
+          return { date: s.date, val: vol };
+        }
+      }).filter(d => d.val > 0);
+
+      if (dataPoints.length >= 2) {
+        const vals = dataPoints.map(d => d.val);
+        const minV = Math.min(...vals), maxV = Math.max(...vals);
+        const range = maxV - minV || 1;
+        const W = 300, H = 80, PAD = 10;
+        const xs = dataPoints.map((_, idx) => PAD + (idx / (dataPoints.length - 1)) * (W - PAD*2));
+        const ys = dataPoints.map(d => H - PAD - ((d.val - minV) / range) * (H - PAD*2));
+
+        const polyline = xs.map((x, idx) => `${x},${ys[idx]}`).join(' ');
+        // Fill area
+        const fillPoints = `${xs[0]},${H} ` + xs.map((x, idx) => `${x},${ys[idx]}`).join(' ') + ` ${xs[xs.length-1]},${H}`;
+
+        // Dots + labels for first, last, and PB point
+        const pbVal = mode === 'weight' ? (parseFloat(pb?.weight)||0) : 0;
+        let dotsHtml = dataPoints.map((d, idx) => {
+          const isFirst = idx === 0, isLast = idx === dataPoints.length - 1;
+          const isPB = d.val === maxV;
+          if (!isFirst && !isLast && !isPB) return '';
+          const label = mode === 'weight' ? `${d.val}kg` : `${d.val}`;
+          const color = isPB ? '#D4A017' : '#C0392B';
+          const labelY = ys[idx] < 20 ? ys[idx] + 14 : ys[idx] - 6;
+          return `<circle cx="${xs[idx]}" cy="${ys[idx]}" r="3.5" fill="${color}"/>
+            <text x="${xs[idx]}" y="${labelY}" fill="${color}" font-size="9" text-anchor="middle" font-family="system-ui">${label}</text>`;
+        }).join('');
+
+        // Axis labels
+        const firstDate = dataPoints[0].date.slice(5); // MM-DD
+        const lastDate = dataPoints[dataPoints.length-1].date.slice(5);
+
+        chartHtml = `
+        <div style="margin:10px 0 6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${mode === 'weight' ? 'Max weight (kg)' : 'Total volume (kg)'}</span>
+            <div style="display:flex;gap:4px;">
+              <button onclick="setChartMode('${wt}',${i},'weight')" style="background:${mode==='weight'?'var(--red)':'var(--bg4)'};border:1px solid ${mode==='weight'?'var(--red)':'var(--border)'};border-radius:5px;color:${mode==='weight'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Weight</button>
+              <button onclick="setChartMode('${wt}',${i},'volume')" style="background:${mode==='volume'?'var(--red)':'var(--bg4)'};border:1px solid ${mode==='volume'?'var(--red)':'var(--border)'};border-radius:5px;color:${mode==='volume'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Volume</button>
+            </div>
+          </div>
+          <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;overflow:visible;">
+            <!-- Grid lines -->
+            <line x1="${PAD}" y1="${PAD}" x2="${PAD}" y2="${H-PAD}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <line x1="${PAD}" y1="${PAD + (H-PAD*2)/2}" x2="${W-PAD}" y2="${PAD + (H-PAD*2)/2}" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="3,3"/>
+            <!-- Fill -->
+            <polygon points="${fillPoints}" fill="rgba(192,57,43,0.08)"/>
+            <!-- Line -->
+            <polyline points="${polyline}" fill="none" stroke="#C0392B" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- Dots & labels -->
+            ${dotsHtml}
+            <!-- Date labels -->
+            <text x="${xs[0]}" y="${H}" fill="rgba(255,255,255,0.25)" font-size="8" text-anchor="start" font-family="system-ui">${firstDate}</text>
+            <text x="${xs[xs.length-1]}" y="${H}" fill="rgba(255,255,255,0.25)" font-size="8" text-anchor="end" font-family="system-ui">${lastDate}</text>
+          </svg>
+        </div>`;
+      }
+    } else if (sessionsSorted.length === 1) {
+      chartHtml = `<div style="font-size:11px;color:var(--text3);padding:6px 0;font-style:italic;">Log at least 2 sessions to see chart</div>`;
     }
 
-    // Last 3 sessions preview
+    // Session history (last 3)
     let historyHtml = '';
-    if (sessions.length) {
-      historyHtml = sessions.slice(0, 3).map(s => {
+    if (sessionsDisplay.length) {
+      historyHtml = sessionsDisplay.slice(0, 3).map(s => {
         const sets = s.sets.map((set, si) =>
           `<span style="font-size:11px;color:var(--text2);">S${si+1}: ${set.weight||'—'}kg×${set.reps||'—'}</span>`
         ).join('<span style="color:var(--text3);margin:0 4px;">·</span>');
@@ -1336,17 +1412,33 @@ function renderProgress() {
             <button onclick="deleteProgSession('${wt}',${i},'${s.id}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0;">×</button>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;">${sets}</div>
+          ${s.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:5px;font-style:italic;">${s.notes}</div>` : ''}
         </div>`;
       }).join('');
-      if (sessions.length > 3) {
-        historyHtml += `<div style="font-size:12px;color:var(--text3);text-align:center;padding:4px 0;">${sessions.length - 3} older sessions hidden</div>`;
+      if (sessionsDisplay.length > 3) {
+        historyHtml += `<button onclick="toggleAllSessions('${wt}',${i})" id="show-all-${wt}-${i}" style="width:100%;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:12px;padding:6px;cursor:pointer;margin-bottom:6px;">Show all ${sessionsDisplay.length} sessions</button>
+        <div id="all-sessions-${wt}-${i}" style="display:none;">
+          ${sessionsDisplay.slice(3).map(s => {
+            const sets = s.sets.map((set, si) =>
+              `<span style="font-size:11px;color:var(--text2);">S${si+1}: ${set.weight||'—'}kg×${set.reps||'—'}</span>`
+            ).join('<span style="color:var(--text3);margin:0 4px;">·</span>');
+            return `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:11px;color:var(--text3);">${s.date}</span>
+                <button onclick="deleteProgSession('${wt}',${i},'${s.id}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0;">×</button>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">${sets}</div>
+              ${s.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:5px;font-style:italic;">${s.notes}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`;
       }
     } else {
-      historyHtml = `<div style="font-size:13px;color:var(--text3);padding:6px 0;">No sessions logged yet</div>`;
+      historyHtml = `<div style="font-size:13px;color:var(--text3);padding:6px 0;">No sessions logged yet — tap + Log to start</div>`;
     }
 
     return `<div class="progress-exercise">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div>
           <div class="progress-exercise-name" style="margin-bottom:3px;">${ex.name}</div>
           <div style="font-size:11px;color:var(--red);font-weight:600;">${ex.reps}</div>
@@ -1354,9 +1446,24 @@ function renderProgress() {
         </div>
         <button onclick="openProgModal('${wt}',${i})" style="flex-shrink:0;background:var(--red);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;margin-left:10px;">+ Log</button>
       </div>
-      <div>${historyHtml}</div>
+      ${chartHtml}
+      <div style="margin-top:8px;">${historyHtml}</div>
     </div>`;
   }).join('');
+}
+
+function setChartMode(wt, exIdx, mode) {
+  chartMode[wt + exIdx] = mode;
+  renderProgress();
+}
+
+function toggleAllSessions(wt, exIdx) {
+  const el = document.getElementById(`all-sessions-${wt}-${exIdx}`);
+  const btn = document.getElementById(`show-all-${wt}-${exIdx}`);
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? 'Hide older sessions' : `Show all sessions`;
 }
 
 function openProgModal(wt, exIdx) {
