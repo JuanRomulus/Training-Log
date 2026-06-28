@@ -228,45 +228,7 @@
     font-family: var(--font);
   }
   .set-input-wrap input:focus { border-color: var(--red); }
-  .set-pair {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-  }
-  .set-pair-label {
-    font-size: 10px;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 3px;
-    display: block;
-  }
-  .set-pair input {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-size: 13px;
-    padding: 6px 6px;
-    outline: none;
-    font-family: var(--font);
-    text-align: center;
-  }
-  .set-pair input:focus { border-color: var(--red); }
-  .set-pair-header {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin-bottom: 3px;
-  }
-  .set-pair-header span {
-    font-size: 10px;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    text-align: center;
-  }
+
 
   /* Rating row */
   .rating-row {
@@ -855,7 +817,6 @@ function renderSessionForm() {
       <div class="info-grid">
         <div class="info-field"><label>Date</label><input type="date" id="f-date" value="${sessionData.date}"></div>
         <div class="info-field"><label>Start time</label><input type="time" id="f-time"></div>
-        <div class="info-field"><label>End time</label><input type="time" id="f-endtime"></div>
         <div class="info-field"><label>Body weight (kg)</label><input type="number" id="f-bw" placeholder="e.g. 82"></div>
         <div class="info-field"><label>Energy (1–10)</label><input type="number" min="1" max="10" id="f-energy" placeholder="7"></div>
         <div class="info-field" style="grid-column:1/-1"><label>Sleep (hrs)</label><input type="number" id="f-sleep" placeholder="7.5" step="0.5"></div>
@@ -867,20 +828,8 @@ function renderSessionForm() {
     WORKOUT_EXERCISES[t].forEach((ex, i) => {
       html += `<div class="exercise-row">
         <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span>${ex.note ? `<span style="font-size:10px;color:var(--text3);margin-left:6px;">${ex.note}</span>` : ''}</div>
-        <div class="set-pair-header">
-          <span>Set 1</span><span>Set 2</span><span>Set 3</span>
-        </div>
         <div class="sets-grid">
-          ${[1,2,3].map(s => `<div class="set-pair">
-            <div>
-              <span class="set-pair-label">kg</span>
-              <input type="number" step="0.5" placeholder="0" data-ex="${i}" data-set="${s}" data-field="weight" class="set-inp-weight">
-            </div>
-            <div>
-              <span class="set-pair-label">reps</span>
-              <input type="number" placeholder="0" data-ex="${i}" data-set="${s}" data-field="reps" class="set-inp-reps">
-            </div>
-          </div>`).join('')}
+          ${[1,2,3].map(s => `<div class="set-input-wrap"><label>Set ${s}</label><input type="text" placeholder="kg / reps" data-ex="${i}" data-set="${s}" class="set-inp"></div>`).join('')}
         </div>
       </div>`;
     });
@@ -979,34 +928,17 @@ function saveSession() {
 
   const date = document.getElementById('f-date')?.value || sessionData.date;
   const time = document.getElementById('f-time')?.value || '';
-  const endTime = document.getElementById('f-endtime')?.value || '';
   const bw = document.getElementById('f-bw')?.value || '';
   const energy = document.getElementById('f-energy')?.value || '';
   const sleep = document.getElementById('f-sleep')?.value || '';
   const notes = document.getElementById('f-notes')?.value || '';
 
   let sets = {};
-  document.querySelectorAll('.set-inp-weight').forEach(inp => {
+  document.querySelectorAll('.set-inp').forEach(inp => {
     const ex = inp.dataset.ex;
     const s = inp.dataset.set;
     if (!sets[ex]) sets[ex] = {};
-    if (!sets[ex][s]) sets[ex][s] = {};
-    sets[ex][s].weight = inp.value;
-  });
-  document.querySelectorAll('.set-inp-reps').forEach(inp => {
-    const ex = inp.dataset.ex;
-    const s = inp.dataset.set;
-    if (!sets[ex]) sets[ex] = {};
-    if (!sets[ex][s]) sets[ex][s] = {};
-    sets[ex][s].reps = inp.value;
-  });
-  // Convert to combined string for storage compatibility
-  Object.keys(sets).forEach(ex => {
-    Object.keys(sets[ex]).forEach(s => {
-      const w = sets[ex][s].weight || '';
-      const r = sets[ex][s].reps || '';
-      sets[ex][s] = w || r ? `${w} / ${r}` : '';
-    });
+    sets[ex][s] = inp.value;
   });
 
   let rounds = [];
@@ -1034,7 +966,6 @@ function saveSession() {
     type: t,
     date,
     time,
-    endTime,
     bodyWeight: bw,
     energy,
     sleep,
@@ -1056,11 +987,6 @@ function saveSession() {
   if (!cal[date].includes(t)) cal[date].push(t);
   saveCalendar(cal);
 
-  // Auto-sync sets to progress tracker for strength workouts
-  if (['A','B','C'].includes(t)) {
-    syncSessionToProgress(t, date, sets);
-  }
-
   updateStreak();
   showToast('Session saved ✓');
   sessionData = { type: t, date: new Date().toISOString().slice(0,10), sets: {}, techniques: [], rounds: [], rating: 0 };
@@ -1069,66 +995,7 @@ function saveSession() {
   document.getElementById('session-form').innerHTML = '';
 }
 
-function parseSetValue(raw) {
-  // Parses inputs like "40kg / 10", "40 / 10", "40kg/10", "40x10", "40 10"
-  if (!raw || !raw.trim()) return { weight: '', reps: '' };
-  raw = raw.trim();
-  // Try splitting on common separators: /, x, X, space
-  const match = raw.match(/^([\d.]+)\s*(?:kg)?\s*[\/xX\s]\s*([\d.]+)/);
-  if (match) return { weight: match[1], reps: match[2] };
-  // Just a number — assume it's weight
-  const num = raw.match(/^([\d.]+)/);
-  if (num) return { weight: num[1], reps: '' };
-  return { weight: '', reps: '' };
-}
 
-function syncSessionToProgress(wt, date, sets) {
-  const p = getProgress();
-  if (!p[wt]) p[wt] = {};
-
-  const exs = WORKOUT_EXERCISES[wt];
-  exs.forEach((ex, exIdx) => {
-    const rawSets = sets[exIdx] || sets[String(exIdx)] || {};
-    const parsedSets = [1,2,3].map(n => parseSetValue(rawSets[n] || rawSets[String(n)] || ''));
-
-    // Skip if no data entered
-    if (parsedSets.every(s => !s.weight && !s.reps)) return;
-
-    if (!p[wt][exIdx]) p[wt][exIdx] = { sessions: [], pb: null };
-    if (!p[wt][exIdx].sessions) p[wt][exIdx].sessions = [];
-
-    // Check if a session for this date already exists — update it rather than duplicate
-    const existingIdx = p[wt][exIdx].sessions.findIndex(s => s.date === date);
-    const newEntry = {
-      id: existingIdx >= 0 ? p[wt][exIdx].sessions[existingIdx].id : Date.now().toString() + exIdx,
-      date,
-      sets: parsedSets,
-      notes: '',
-      autoLogged: true
-    };
-
-    if (existingIdx >= 0) {
-      p[wt][exIdx].sessions[existingIdx] = newEntry;
-    } else {
-      p[wt][exIdx].sessions.push(newEntry);
-    }
-
-    // Recalculate PB
-    let bestScore = 0, bestPB = null;
-    p[wt][exIdx].sessions.forEach(s => {
-      s.sets.forEach(set => {
-        const score = (parseFloat(set.weight)||0) * (parseFloat(set.reps)||0);
-        if (score > bestScore) {
-          bestScore = score;
-          bestPB = { weight: set.weight, reps: set.reps, date: s.date };
-        }
-      });
-    });
-    p[wt][exIdx].pb = bestPB;
-  });
-
-  saveProgress(p);
-}
 
 function updateStreak() {
   const sessions = getSessions();
@@ -1165,7 +1032,7 @@ function renderHistory() {
         <span class="history-type">${TYPE_LABELS[s.type] || s.type}</span>
         <span class="history-date">${formatDate(s.date)}</span>
       </div>
-      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}${(s.time && s.endTime) ? '  •  ' + calcDuration(s.time, s.endTime) : ''}</div>
+      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}</div>
       ${s.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic;">"${s.notes.slice(0,80)}${s.notes.length>80?'…':''}"</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
         <div class="history-rating">${dots}</div>
@@ -1176,17 +1043,6 @@ function renderHistory() {
       </div>
     </div>`;
   }).join('');
-}
-
-function calcDuration(start, end) {
-  if (!start || !end) return '';
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  let mins = (eh * 60 + em) - (sh * 60 + sm);
-  if (mins < 0) mins += 1440; // handle midnight crossover
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 function formatDate(iso) {
@@ -1265,7 +1121,7 @@ function viewSession(id) {
         <div style="font-size:16px;font-weight:600;color:var(--text);">${TYPE_LABELS[t]}</div>
         <button onclick="closeEditModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;">×</button>
       </div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">${formatDate(s.date)}${s.time ? ' · ' + s.time : ''}${s.endTime ? ' – ' + s.endTime : ''}${(s.time && s.endTime) ? ' (' + calcDuration(s.time, s.endTime) + ')' : ''}</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">${formatDate(s.date)}${s.time ? ' · '+s.time : ''}</div>
 
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">
         ${s.bodyWeight ? `<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Weight</div><div style="font-size:16px;font-weight:600;color:var(--text);">${s.bodyWeight}kg</div></div>` : ''}
@@ -1299,23 +1155,8 @@ function editSession(id) {
         const sets = s.sets?.[i] || {};
         return `<div class="exercise-row">
           <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span></div>
-          <div class="set-pair-header">
-            <span>Set 1</span><span>Set 2</span><span>Set 3</span>
-          </div>
           <div class="sets-grid">
-            ${[1,2,3].map(n => {
-              const parsed = parseSetValue(sets[n]||'');
-              return `<div class="set-pair">
-                <div>
-                  <span class="set-pair-label">kg</span>
-                  <input type="number" step="0.5" placeholder="0" value="${parsed.weight||''}" data-ex="${i}" data-set="${n}" data-field="weight" class="edit-set-inp-weight">
-                </div>
-                <div>
-                  <span class="set-pair-label">reps</span>
-                  <input type="number" placeholder="0" value="${parsed.reps||''}" data-ex="${i}" data-set="${n}" data-field="reps" class="edit-set-inp-reps">
-                </div>
-              </div>`;
-            }).join('')}
+            ${[1,2,3].map(n => `<div class="set-input-wrap"><label>Set ${n}</label><input type="text" value="${sets[n]||''}" placeholder="kg / reps" data-ex="${i}" data-set="${n}" class="edit-set-inp"></div>`).join('')}
           </div>
         </div>`;
       }).join('') + `</div>`;
@@ -1365,7 +1206,6 @@ function editSession(id) {
         <div class="info-grid">
           <div class="info-field"><label>Date</label><input type="date" id="edit-date" value="${s.date||''}"></div>
           <div class="info-field"><label>Start time</label><input type="time" id="edit-time" value="${s.time||''}"></div>
-          <div class="info-field"><label>End time</label><input type="time" id="edit-endtime" value="${s.endTime||''}"></div>
           <div class="info-field"><label>Body weight (kg)</label><input type="number" id="edit-bw" value="${s.bodyWeight||''}" placeholder="e.g. 82"></div>
           <div class="info-field"><label>Energy (1–10)</label><input type="number" min="1" max="10" id="edit-energy" value="${s.energy||''}" placeholder="7"></div>
           <div class="info-field" style="grid-column:1/-1"><label>Sleep (hrs)</label><input type="number" id="edit-sleep" value="${s.sleep||''}" placeholder="7.5" step="0.5"></div>
@@ -1414,7 +1254,6 @@ function saveEditSession(id) {
 
   s.date = document.getElementById('edit-date')?.value || s.date;
   s.time = document.getElementById('edit-time')?.value || s.time;
-  s.endTime = document.getElementById('edit-endtime')?.value || s.endTime || '';
   s.bodyWeight = document.getElementById('edit-bw')?.value || '';
   s.energy = document.getElementById('edit-energy')?.value || '';
   s.sleep = document.getElementById('edit-sleep')?.value || '';
@@ -1423,29 +1262,12 @@ function saveEditSession(id) {
   s.techniques = [...(window._editTechniques || [])];
 
   if (['A','B','C'].includes(s.type)) {
-    const tempSets = {};
-    document.querySelectorAll('.edit-set-inp-weight').forEach(inp => {
-      const ex = inp.dataset.ex, n = inp.dataset.set;
-      if (!tempSets[ex]) tempSets[ex] = {};
-      if (!tempSets[ex][n]) tempSets[ex][n] = {};
-      tempSets[ex][n].weight = inp.value;
-    });
-    document.querySelectorAll('.edit-set-inp-reps').forEach(inp => {
-      const ex = inp.dataset.ex, n = inp.dataset.set;
-      if (!tempSets[ex]) tempSets[ex] = {};
-      if (!tempSets[ex][n]) tempSets[ex][n] = {};
-      tempSets[ex][n].reps = inp.value;
-    });
     s.sets = {};
-    Object.keys(tempSets).forEach(ex => {
-      s.sets[ex] = {};
-      Object.keys(tempSets[ex]).forEach(n => {
-        const w = tempSets[ex][n].weight || '';
-        const r = tempSets[ex][n].reps || '';
-        s.sets[ex][n] = w || r ? `${w} / ${r}` : '';
-      });
+    document.querySelectorAll('.edit-set-inp').forEach(inp => {
+      const ex = inp.dataset.ex, n = inp.dataset.set;
+      if (!s.sets[ex]) s.sets[ex] = {};
+      s.sets[ex][n] = inp.value;
     });
-    syncSessionToProgress(s.type, s.date, s.sets);
   }
 
   if (s.type === 'BAG' || s.type === 'SPAR') {
