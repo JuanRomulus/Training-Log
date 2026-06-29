@@ -1031,12 +1031,74 @@ function saveSession() {
   if (!cal[date].includes(t)) cal[date].push(t);
   saveCalendar(cal);
 
+  // Auto-sync to progress tracker for strength workouts
+  if (['A','B','C'].includes(t)) {
+    syncToProgress(t, date, sets);
+  }
+
   updateStreak();
   showToast('Session saved ✓');
   sessionData = { type: t, date: new Date().toISOString().slice(0,10), sets: {}, techniques: [], rounds: [], rating: 0 };
   document.querySelectorAll('.workout-type-btn').forEach(b => b.classList.remove('selected'));
   currentWorkout = null;
   document.getElementById('session-form').innerHTML = '';
+}
+
+function parseSetStr(raw) {
+  if (!raw || !raw.trim()) return { weight: '', reps: '' };
+  const parts = raw.split('/');
+  return {
+    weight: parts[0] ? parts[0].trim() : '',
+    reps: parts[1] ? parts[1].trim() : ''
+  };
+}
+
+function syncToProgress(wt, date, sets) {
+  const p = getProgress();
+  if (!p[wt]) p[wt] = {};
+  const exs = WORKOUT_EXERCISES[wt];
+
+  exs.forEach((ex, exIdx) => {
+    const rawSets = sets[exIdx] || sets[String(exIdx)] || {};
+    const parsedSets = [1, 2, 3].map(n => parseSetStr(rawSets[n] || rawSets[String(n)] || ''));
+
+    // Skip if nothing entered
+    if (parsedSets.every(s => !s.weight && !s.reps)) return;
+
+    if (!p[wt][exIdx]) p[wt][exIdx] = { sessions: [], pb: null };
+    if (!p[wt][exIdx].sessions) p[wt][exIdx].sessions = [];
+
+    // Update existing entry for this date, or add new one
+    const existingIdx = p[wt][exIdx].sessions.findIndex(s => s.date === date);
+    const entry = {
+      id: existingIdx >= 0 ? p[wt][exIdx].sessions[existingIdx].id : Date.now().toString() + exIdx,
+      date,
+      sets: parsedSets,
+      notes: existingIdx >= 0 ? p[wt][exIdx].sessions[existingIdx].notes : '',
+      autoLogged: true
+    };
+
+    if (existingIdx >= 0) {
+      p[wt][exIdx].sessions[existingIdx] = entry;
+    } else {
+      p[wt][exIdx].sessions.push(entry);
+    }
+
+    // Recalculate PB
+    let bestScore = 0, bestPB = null;
+    p[wt][exIdx].sessions.forEach(s => {
+      s.sets.forEach(set => {
+        const score = (parseFloat(set.weight) || 0) * (parseFloat(set.reps) || 0);
+        if (score > bestScore) {
+          bestScore = score;
+          bestPB = { weight: set.weight, reps: set.reps, date: s.date };
+        }
+      });
+    });
+    p[wt][exIdx].pb = bestPB;
+  });
+
+  saveProgress(p);
 }
 
 function updateStreak() {
@@ -1350,6 +1412,9 @@ function saveEditSession(id) {
 
   sessions[idx] = s;
   saveSessions(sessions);
+  if (['A','B','C'].includes(s.type)) {
+    syncToProgress(s.type, s.date, s.sets);
+  }
   closeEditModal();
   showToast('Session updated ✓');
   renderHistory();
