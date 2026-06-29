@@ -1061,13 +1061,6 @@ function syncToProgress(wt, date, sets) {
   if (!p[wt]) p[wt] = {};
   const exs = WORKOUT_EXERCISES[wt];
 
-  // Work out which week number this session falls in
-  // Use the session count for this workout type to assign a week column
-  const sessions = getSessions().filter(s => s.type === wt);
-  const sessionDates = [...new Set(sessions.map(s => s.date))].sort();
-  let weekNum = sessionDates.indexOf(date) + 1;
-  if (weekNum < 1) weekNum = sessionDates.length + 1;
-
   exs.forEach((ex, exIdx) => {
     const rawSets = sets[exIdx] || sets[String(exIdx)] || {};
     const parsedSets = [1, 2, 3].map(n => parseSetStr(rawSets[n] || rawSets[String(n)] || ''));
@@ -1085,12 +1078,12 @@ function syncToProgress(wt, date, sets) {
       if (w > bestWeight) { bestWeight = w; bestReps = r; }
     });
 
-    // Store best set as "kg / reps" string in the week column
+    // Store best set using date as key
     if (bestWeight || bestReps) {
-      p[wt][exIdx][weekNum] = `${bestWeight} / ${bestReps}`;
+      p[wt][exIdx][date] = `${bestWeight} / ${bestReps}`;
     }
 
-    // Recalculate PB — find highest weight across all weeks
+    // Recalculate PB — find highest weight across all date entries
     let pbWeight = 0, pbReps = 0;
     Object.keys(p[wt][exIdx]).filter(k => k !== 'pb').forEach(k => {
       const val = p[wt][exIdx][k];
@@ -1486,31 +1479,38 @@ function deleteProgressWeek(wt, ex) {
   renderProgress();
 }
 
+function shortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+}
+
 function renderProgress() {
   ['A','B','C'].forEach(wt => {
     const el = document.getElementById('progress-' + wt);
     const p = getProgress()[wt] || {};
     const exs = WORKOUT_EXERCISES[wt];
+
+    // Get all unique dates across all exercises for this workout, sorted
+    const allDatesSet = new Set();
+    exs.forEach((_, i) => {
+      const entries = p[i] || {};
+      Object.keys(entries).filter(k => k !== 'pb' && k.match(/^\d{4}-\d{2}-\d{2}$/)).forEach(d => allDatesSet.add(d));
+    });
+    const allDates = [...allDatesSet].sort();
+
     el.innerHTML = exs.map((ex, i) => {
-      const weeks = p[i] || {};
-      const nums = Object.keys(weeks).filter(k => k !== 'pb').map(Number).filter(n => !isNaN(n)).sort((a,b) => a-b);
-      // Always show at least 5 weeks
-      const maxWeek = Math.max(5, nums.length > 0 ? Math.max(...nums) : 0);
-      const allWeeks = Array.from({length: maxWeek}, (_, i) => i + 1);
-      const pb = weeks.pb || '';
+      const entries = p[i] || {};
+      const pb = entries.pb || '';
       return `<div class="progress-exercise">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="progress-exercise-name" style="margin-bottom:0;">${ex.name}${pb ? `<span class="pb-badge">PB: ${pb}</span>` : ''}</div>
-          <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px;">
-            <button onclick="deleteProgressWeek('${wt}',${i})" style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">−</button>
-            <button onclick="addProgressWeek('${wt}',${i})" style="background:var(--red-dim);border:1px solid rgba(192,57,43,0.3);border-radius:6px;color:#E57373;font-size:16px;width:28px;height:28px;cursor:pointer;line-height:1;">+</button>
-          </div>
         </div>
         <div class="progress-weeks" id="pw-${wt}-${i}">
-          ${allWeeks.map(w => `<div class="progress-week">
-            <label>Wk ${w}</label>
-            <input type="text" value="${weeks[w]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${w}" onchange="saveProgressEntry(this)">
-          </div>`).join('')}
+          ${allDates.length ? allDates.map(d => `<div class="progress-week" style="width:62px;">
+            <label style="font-size:9px;white-space:nowrap;">${shortDate(d)}</label>
+            <input type="text" value="${entries[d]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
+          </div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:4px 0;">No sessions yet — log a workout to start tracking</div>'}
         </div>
         <div style="margin-top:8px;">
           <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Personal best</label>
@@ -1520,7 +1520,7 @@ function renderProgress() {
       </div>`;
     }).join('');
 
-    // Scroll each exercise to the latest week after render
+    // Scroll to latest date
     setTimeout(() => {
       el.querySelectorAll('.progress-weeks').forEach(row => {
         row.scrollLeft = row.scrollWidth;
