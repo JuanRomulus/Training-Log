@@ -1485,6 +1485,62 @@ function shortDate(iso) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 }
 
+const progChartMode = {}; // key: wt+exIdx -> 'weight' | 'reps'
+function buildProgressChart(entries, dates, mode) {
+  // Filter to dates that have data
+  const points = dates.map(d => {
+    const raw = entries[d] || '';
+    const parts = raw.split('/');
+    const w = parseFloat(parts[0]) || 0;
+    const r = parseFloat(parts[1]) || 0;
+    return { date: d, val: mode === 'weight' ? w : r };
+  }).filter(p => p.val > 0);
+
+  if (points.length < 2) return points.length === 1
+    ? `<div style="font-size:11px;color:var(--text3);font-style:italic;padding:6px 0;">Log at least 2 sessions to see chart</div>`
+    : '';
+
+  const W = 300, H = 80, PAD = 10;
+  const vals = points.map(p => p.val);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const xs = points.map((_, idx) => PAD + (idx / (points.length - 1)) * (W - PAD * 2));
+  const ys = points.map(p => H - PAD - ((p.val - minV) / range) * (H - PAD * 2));
+  const polyline = xs.map((x, idx) => `${x},${ys[idx]}`).join(' ');
+  const fill = `${xs[0]},${H} ` + xs.map((x, idx) => `${x},${ys[idx]}`).join(' ') + ` ${xs[xs.length-1]},${H}`;
+  const color = mode === 'weight' ? '#C0392B' : '#5B9BD5';
+  const fillColor = mode === 'weight' ? 'rgba(192,57,43,0.08)' : 'rgba(91,155,213,0.08)';
+
+  const dots = points.map((p, idx) => {
+    const isFirst = idx === 0, isLast = idx === points.length - 1, isPB = p.val === maxV;
+    if (!isFirst && !isLast && !isPB) return '';
+    const dotColor = isPB ? '#D4A017' : color;
+    const label = mode === 'weight' ? `${p.val}kg` : `${p.val}`;
+    const labelY = ys[idx] < 18 ? ys[idx] + 13 : ys[idx] - 5;
+    return `<circle cx="${xs[idx]}" cy="${ys[idx]}" r="3.5" fill="${dotColor}"/>
+      <text x="${xs[idx]}" y="${labelY}" fill="${dotColor}" font-size="9" text-anchor="middle" font-family="system-ui">${label}</text>`;
+  }).join('');
+
+  const firstDate = shortDate(points[0].date);
+  const lastDate = shortDate(points[points.length - 1].date);
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;overflow:visible;">
+    <line x1="${PAD}" y1="${PAD}" x2="${PAD}" y2="${H-PAD}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <line x1="${PAD}" y1="${PAD+(H-PAD*2)/2}" x2="${W-PAD}" y2="${PAD+(H-PAD*2)/2}" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="3,3"/>
+    <polygon points="${fill}" fill="${fillColor}"/>
+    <polyline points="${polyline}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${xs[0]}" y="${H+2}" fill="rgba(255,255,255,0.2)" font-size="8" text-anchor="start" font-family="system-ui">${firstDate}</text>
+    <text x="${xs[xs.length-1]}" y="${H+2}" fill="rgba(255,255,255,0.2)" font-size="8" text-anchor="end" font-family="system-ui">${lastDate}</text>
+  </svg>`;
+}
+
+function setProgChartMode(wt, exIdx, mode) {
+  progChartMode[wt + exIdx] = mode;
+  renderProgress();
+}
+
 function renderProgress() {
   ['A','B','C'].forEach(wt => {
     const el = document.getElementById('progress-' + wt);
@@ -1502,16 +1558,36 @@ function renderProgress() {
     el.innerHTML = exs.map((ex, i) => {
       const entries = p[i] || {};
       const pb = entries.pb || '';
+      const key = wt + i;
+      if (!progChartMode[key]) progChartMode[key] = 'weight';
+      const mode = progChartMode[key];
+
+      // Build chart
+      const chartSVG = allDates.length >= 1 ? buildProgressChart(entries, allDates, mode) : '';
+
       return `<div class="progress-exercise">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
           <div class="progress-exercise-name" style="margin-bottom:0;">${ex.name}${pb ? `<span class="pb-badge">PB: ${pb}</span>` : ''}</div>
         </div>
+
+        ${chartSVG ? `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${mode === 'weight' ? 'Weight (kg)' : 'Reps'} over time</span>
+            <div style="display:flex;gap:4px;">
+              <button onclick="setProgChartMode('${wt}',${i},'weight')" style="background:${mode==='weight'?'#C0392B':'var(--bg4)'};border:1px solid ${mode==='weight'?'#C0392B':'var(--border)'};border-radius:5px;color:${mode==='weight'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Weight</button>
+              <button onclick="setProgChartMode('${wt}',${i},'reps')" style="background:${mode==='reps'?'#5B9BD5':'var(--bg4)'};border:1px solid ${mode==='reps'?'#5B9BD5':'var(--border)'};border-radius:5px;color:${mode==='reps'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Reps</button>
+            </div>
+          </div>
+          ${chartSVG}
+        </div>` : '<div style="font-size:12px;color:var(--text3);padding:4px 0 10px;">No sessions yet — log a workout to start tracking</div>'}
+
         <div class="progress-weeks" id="pw-${wt}-${i}">
           ${allDates.length ? allDates.map(d => `<div class="progress-week" style="width:62px;">
             <label style="font-size:9px;white-space:nowrap;">${shortDate(d)}</label>
             <input type="text" value="${entries[d]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
-          </div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:4px 0;">No sessions yet — log a workout to start tracking</div>'}
+          </div>`).join('') : ''}
         </div>
+
         <div style="margin-top:8px;">
           <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Personal best</label>
           <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);"
