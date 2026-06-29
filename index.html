@@ -228,6 +228,47 @@
     font-family: var(--font);
   }
   .set-input-wrap input:focus { border-color: var(--red); }
+  .set-header-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .set-header-row span {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: center;
+    font-weight: 600;
+  }
+  .set-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+  }
+  .set-split-label {
+    display: block;
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+    text-align: center;
+  }
+  .set-split input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 6px 4px;
+    outline: none;
+    font-family: var(--font);
+    text-align: center;
+  }
+  .set-split input:focus { border-color: var(--red); }
 
   /* Rating row */
   .rating-row {
@@ -814,8 +855,12 @@ function renderSessionForm() {
     WORKOUT_EXERCISES[t].forEach((ex, i) => {
       html += `<div class="exercise-row">
         <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span>${ex.note ? `<span style="font-size:10px;color:var(--text3);margin-left:6px;">${ex.note}</span>` : ''}</div>
+        <div class="set-header-row"><span>Set 1</span><span>Set 2</span><span>Set 3</span></div>
         <div class="sets-grid">
-          ${[1,2,3].map(s => `<div class="set-input-wrap"><label>Set ${s}</label><input type="text" placeholder="kg / reps" data-ex="${i}" data-set="${s}" class="set-inp"></div>`).join('')}
+          ${[1,2,3].map(s => `<div class="set-split">
+            <div><span class="set-split-label">kg</span><input type="number" step="0.5" placeholder="0" data-ex="${i}" data-set="${s}" data-field="weight" class="set-inp-w"></div>
+            <div><span class="set-split-label">reps</span><input type="number" placeholder="0" data-ex="${i}" data-set="${s}" data-field="reps" class="set-inp-r"></div>
+          </div>`).join('')}
         </div>
       </div>`;
     });
@@ -920,11 +965,24 @@ function saveSession() {
   const notes = document.getElementById('f-notes')?.value || '';
 
   let sets = {};
-  document.querySelectorAll('.set-inp').forEach(inp => {
-    const ex = inp.dataset.ex;
-    const s = inp.dataset.set;
+  document.querySelectorAll('.set-inp-w').forEach(inp => {
+    const ex = inp.dataset.ex, s = inp.dataset.set;
     if (!sets[ex]) sets[ex] = {};
-    sets[ex][s] = inp.value;
+    if (!sets[ex][s]) sets[ex][s] = { w: '', r: '' };
+    sets[ex][s].w = inp.value;
+  });
+  document.querySelectorAll('.set-inp-r').forEach(inp => {
+    const ex = inp.dataset.ex, s = inp.dataset.set;
+    if (!sets[ex]) sets[ex] = {};
+    if (!sets[ex][s]) sets[ex][s] = { w: '', r: '' };
+    sets[ex][s].r = inp.value;
+  });
+  // Combine into "kg / reps" strings
+  Object.keys(sets).forEach(ex => {
+    Object.keys(sets[ex]).forEach(s => {
+      const {w, r} = sets[ex][s];
+      sets[ex][s] = (w || r) ? `${w} / ${r}` : '';
+    });
   });
 
   let rounds = [];
@@ -1139,8 +1197,18 @@ function editSession(id) {
         const sets = s.sets?.[i] || {};
         return `<div class="exercise-row">
           <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span></div>
+          <div class="set-header-row"><span>Set 1</span><span>Set 2</span><span>Set 3</span></div>
           <div class="sets-grid">
-            ${[1,2,3].map(n => `<div class="set-input-wrap"><label>Set ${n}</label><input type="text" value="${sets[n]||''}" placeholder="kg / reps" data-ex="${i}" data-set="${n}" class="edit-set-inp"></div>`).join('')}
+            ${[1,2,3].map(n => {
+              const raw = sets[n]||''; 
+              const parts = raw.split('/');
+              const w = parts[0]?parts[0].trim():'';
+              const r = parts[1]?parts[1].trim():'';
+              return `<div class="set-split">
+                <div><span class="set-split-label">kg</span><input type="number" step="0.5" placeholder="0" value="${w}" data-ex="${i}" data-set="${n}" data-field="weight" class="edit-inp-w"></div>
+                <div><span class="set-split-label">reps</span><input type="number" placeholder="0" value="${r}" data-ex="${i}" data-set="${n}" data-field="reps" class="edit-inp-r"></div>
+              </div>`;
+            }).join('')}
           </div>
         </div>`;
       }).join('') + `</div>`;
@@ -1247,10 +1315,26 @@ function saveEditSession(id) {
 
   if (['A','B','C'].includes(s.type)) {
     s.sets = {};
-    document.querySelectorAll('.edit-set-inp').forEach(inp => {
+    const tmpSets = {};
+    document.querySelectorAll('.edit-inp-w').forEach(inp => {
       const ex = inp.dataset.ex, n = inp.dataset.set;
-      if (!s.sets[ex]) s.sets[ex] = {};
-      s.sets[ex][n] = inp.value;
+      if (!tmpSets[ex]) tmpSets[ex] = {};
+      if (!tmpSets[ex][n]) tmpSets[ex][n] = { w: '', r: '' };
+      tmpSets[ex][n].w = inp.value;
+    });
+    document.querySelectorAll('.edit-inp-r').forEach(inp => {
+      const ex = inp.dataset.ex, n = inp.dataset.set;
+      if (!tmpSets[ex]) tmpSets[ex] = {};
+      if (!tmpSets[ex][n]) tmpSets[ex][n] = { w: '', r: '' };
+      tmpSets[ex][n].r = inp.value;
+    });
+    s.sets = {};
+    Object.keys(tmpSets).forEach(ex => {
+      s.sets[ex] = {};
+      Object.keys(tmpSets[ex]).forEach(n => {
+        const {w, r} = tmpSets[ex][n];
+        s.sets[ex][n] = (w || r) ? `${w} / ${r}` : '';
+      });
     });
   }
 
