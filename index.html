@@ -631,6 +631,7 @@
 
 <nav class="nav-tabs">
   <button class="tab-btn active" onclick="showTab('intro')">Home</button>
+  <button class="tab-btn" onclick="showTab('programme')">Programme</button>
   <button class="tab-btn" onclick="showTab('log')">Log Session</button>
   <button class="tab-btn" onclick="showTab('history')">History</button>
   <button class="tab-btn" onclick="showTab('progress')">Progress</button>
@@ -646,6 +647,41 @@
       <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin:0;">— Miyamoto Musashi</p>
     </div>
     <button onclick="showTab('log')" style="margin-top:32px;background:var(--red);border:none;border-radius:var(--radius);color:white;font-size:14px;font-weight:600;padding:13px 40px;cursor:pointer;letter-spacing:0.04em;">Enter Training Log</button>
+  </div>
+</div>
+
+<!-- PROGRAMME TAB -->
+<div id="page-programme" class="page">
+  <p class="section-label">Weekly Structure</p>
+  <div class="card" style="padding:4px 16px;">
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day One</div>
+      <div style="font-size:14px;color:var(--text);">Sparring at 40–50 percent intensity</div>
+    </div>
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Two</div>
+      <div style="font-size:14px;color:var(--text);">Strength session, 35–45 minutes</div>
+    </div>
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Three</div>
+      <div style="font-size:14px;color:var(--text);">Rest or 30-minute easy zone-2 cardio</div>
+    </div>
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Four</div>
+      <div style="font-size:14px;color:var(--text);">Pad and bag session 5x3</div>
+    </div>
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Five</div>
+      <div style="font-size:14px;color:var(--text);">Strength session, 35–45 minutes</div>
+    </div>
+    <div style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Six</div>
+      <div style="font-size:14px;color:var(--text);">Pad and bag 5x3, technical focus, no sparring</div>
+    </div>
+    <div style="padding:14px 0;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Day Seven</div>
+      <div style="font-size:14px;color:var(--text);">Full rest, long walk</div>
+    </div>
   </div>
 </div>
 
@@ -817,7 +853,7 @@ function showTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
-  document.querySelectorAll('.tab-btn')[['intro','log','history','progress','calendar'].indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.tab-btn')[['intro','programme','log','history','progress','calendar'].indexOf(tab)].classList.add('active');
   if (tab === 'history') renderHistory();
   if (tab === 'progress') renderProgress();
   if (tab === 'calendar') renderCalendar();
