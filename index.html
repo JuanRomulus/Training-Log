@@ -636,6 +636,7 @@
   <button class="tab-btn" onclick="showTab('history')">History</button>
   <button class="tab-btn" onclick="showTab('progress')">Progress</button>
   <button class="tab-btn" onclick="showTab('calendar')">Calendar</button>
+  <button class="tab-btn" onclick="showTab('stretch')">Stretch</button>
 </nav>
 
 <!-- INTRO PAGE -->
@@ -777,6 +778,114 @@
   </div>
 </div>
 
+<!-- STRETCH TAB -->
+<div id="page-stretch" class="page">
+  <p class="section-label">Post-session static stretches</p>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    <button class="stretch-filter-btn active" onclick="filterStretches('all',this)">All</button>
+    <button class="stretch-filter-btn" onclick="filterStretches('hips',this)">Hips</button>
+    <button class="stretch-filter-btn" onclick="filterStretches('legs',this)">Legs</button>
+    <button class="stretch-filter-btn" onclick="filterStretches('upper',this)">Upper body</button>
+  </div>
+
+  <div id="stretch-list"></div>
+
+  <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;">Hold each stretch after training when muscles are warm. Tension, not pain.</p>
+</div>
+
+<style>
+  .stretch-filter-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .stretch-filter-btn.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+  .stretch-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .stretch-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+  }
+  .stretch-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--red);
+    min-width: 20px;
+    letter-spacing: 0.04em;
+  }
+  .stretch-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+  .stretch-muscle {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .stretch-chevron {
+    font-size: 16px;
+    color: var(--text3);
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+  .stretch-item.open .stretch-chevron { transform: rotate(180deg) scaleX(-1); }
+  .stretch-body {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+    margin: 0 14px;
+  }
+  .stretch-item.open .stretch-body { display: block; }
+  .stretch-how {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.65;
+    margin: 12px 0 10px;
+  }
+  .stretch-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .stretch-hold-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    letter-spacing: 0.04em;
+  }
+  .stretch-tip {
+    font-size: 12px;
+    color: var(--text3);
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -853,10 +962,11 @@ function showTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
-  document.querySelectorAll('.tab-btn')[['intro','programme','log','history','progress','calendar'].indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.tab-btn')[['intro','programme','log','history','progress','calendar','stretch'].indexOf(tab)].classList.add('active');
   if (tab === 'history') renderHistory();
   if (tab === 'progress') renderProgress();
   if (tab === 'calendar') renderCalendar();
+  if (tab === 'stretch') renderStretches();
   const wm = document.getElementById('fighter-watermark');
   if (wm) wm.style.display = tab === 'intro' ? 'none' : 'block';
 }
@@ -1830,6 +1940,85 @@ if ('serviceWorker' in navigator) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// ── STRETCH TAB ──────────────────────────────────────────────
+const STRETCHES = [
+  { num:1, title:'Low lunge hip flexor', category:'hips', muscle:'Hip flexors · psoas', hold:45,
+    how:'Step one foot forward into a lunge and lower the back knee to the floor. Drive your hips forward and down until you feel a deep stretch through the front of the rear hip. Keep your torso upright.',
+    tip:'Essential for teeps and high kicks — tight hip flexors cap your range.' },
+  { num:2, title:'Butterfly groin stretch', category:'hips', muscle:'Adductors · inner groin', hold:45,
+    how:'Sit tall and press the soles of your feet together, drawing them toward your groin. Let your knees fall out to the sides. Apply gentle elbow pressure on the inner thighs to deepen.',
+    tip:'Critical for teep recovery and clinch positioning.' },
+  { num:3, title:'Seated figure-four', category:'hips', muscle:'Piriformis · glutes', hold:40,
+    how:'Sit on the floor, cross one ankle over the opposite knee making a "4" shape. Hinge forward at the hips to deepen the stretch into the crossed glute.',
+    tip:'Loosens external hip rotation needed for round kicks.' },
+  { num:4, title:'Standing quadriceps', category:'legs', muscle:'Quadriceps', hold:40,
+    how:'Stand on one leg, bend the other at the knee and draw the foot toward your glutes. Hold the ankle and keep your knees together. Squeeze the standing glute for balance.',
+    tip:'Helps knee extension through your teep and push kicks.' },
+  { num:5, title:'Standing hamstring', category:'legs', muscle:'Hamstrings', hold:45,
+    how:'Place one heel on a raised surface at hip height — heavy bag bracket or bench. Keep both legs straight and hinge forward at the hips, reaching toward the foot.',
+    tip:'Flexibility here directly increases kick height.' },
+  { num:6, title:'Side lunge adductor', category:'legs', muscle:'Adductors · inner thigh', hold:40,
+    how:'Stand wide with toes pointed slightly out. Shift your weight to one side, bending that knee while keeping the other leg straight. Sink low into the bent side.',
+    tip:'Improves the lateral hip opening for roundhouse kicks.' },
+  { num:7, title:'Standing calf & soleus', category:'legs', muscle:'Gastrocnemius · soleus', hold:35,
+    how:'Hands on wall, one foot back with heel flat — straight-leg calf stretch. Then bend the rear knee slightly to hit the deeper soleus. Hold each position.',
+    tip:'Protects the ankle through repeated footwork and skipping.' },
+  { num:8, title:'Cross-body shoulder', category:'upper', muscle:'Posterior deltoid · rotator cuff', hold:35,
+    how:'Draw one arm horizontally across your chest. Use the opposite forearm to press it gently closer. Keep your shoulders relaxed and down.',
+    tip:'Important for clinch elbow work and guard recovery.' },
+  { num:9, title:'Doorway chest opener', category:'upper', muscle:'Pectorals · anterior deltoid', hold:35,
+    how:'Place both forearms on a wall or in a doorway at 90°. Lean your body forward until you feel a stretch across the chest. Hold steady.',
+    tip:'Counteracts the forward shoulder slump from guarding.' },
+  { num:10, title:'Overhead tricep stretch', category:'upper', muscle:'Triceps · lat', hold:30,
+    how:'Raise one arm overhead and bend at the elbow, letting the hand drop behind your head. Use the opposite hand to gently press the elbow back and down.',
+    tip:'Keeps elbow strikes loose and protects the joint.' },
+  { num:11, title:'Seated spinal rotation', category:'upper', muscle:'Thoracic spine · obliques', hold:35,
+    how:'Sit with legs straight. Bend one knee and cross that foot over the opposite thigh. Rotate your torso toward the bent knee, using your opposite elbow as leverage.',
+    tip:'Frees rotational power for hooks and body shots.' },
+  { num:12, title:"Child's pose", category:'upper', muscle:'Lumbar spine · lats', hold:45,
+    how:'Kneel and sit your hips back toward your heels. Extend both arms forward on the floor, forehead down. Let your chest sink and breathe deeply.',
+    tip:'The cooldown anchor — decompress the spine after hard training.' },
+];
+
+let stretchFilter = 'all';
+
+function filterStretches(cat, btn) {
+  stretchFilter = cat;
+  document.querySelectorAll('.stretch-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStretches();
+}
+
+function toggleStretch(num) {
+  const el = document.getElementById('stretch-' + num);
+  el.classList.toggle('open');
+}
+
+function renderStretches() {
+  const list = document.getElementById('stretch-list');
+  if (!list) return;
+  const items = stretchFilter === 'all' ? STRETCHES : STRETCHES.filter(s => s.category === stretchFilter);
+  list.innerHTML = items.map(s => `
+    <div class="stretch-item" id="stretch-${s.num}" onclick="toggleStretch(${s.num})">
+      <div class="stretch-item-header">
+        <span class="stretch-num">${String(s.num).padStart(2,'0')}</span>
+        <div style="flex:1;">
+          <div class="stretch-name">${s.title}</div>
+          <div class="stretch-muscle">${s.muscle}</div>
+        </div>
+        <span class="stretch-chevron">▾</span>
+      </div>
+      <div class="stretch-body">
+        <div class="stretch-how">${s.how}</div>
+        <div class="stretch-meta">
+          <span class="stretch-hold-badge">Hold ${s.hold}s</span>
+          <span class="stretch-tip">${s.tip}</span>
+        </div>
+      </div>
+    </div>`).join('');
+  // Rotate chevrons for open items (re-render closes all, which is fine)
 }
 
 </script>
