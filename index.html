@@ -778,20 +778,33 @@
   </div>
 </div>
 
+<!-- STRETCH MODAL -->
+<div id="stretch-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:flex-end;justify-content:center;">
+  <div id="stretch-modal" style="display:none;background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:24px 20px 40px;">
+    <div style="text-align:center;margin-bottom:6px;">
+      <div style="font-size:22px;margin-bottom:10px;">🧘</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;">Did you stretch before this session?</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px;">Logged against this session in History.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <button onclick="confirmStretchAndSave(true)" style="background:var(--red);border:none;border-radius:var(--radius);color:white;font-size:14px;font-weight:600;padding:14px;cursor:pointer;">Yes</button>
+      <button onclick="confirmStretchAndSave(false)" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-size:14px;font-weight:600;padding:14px;cursor:pointer;">No</button>
+    </div>
+    <button onclick="confirmStretchAndSave(null)" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;padding:8px;cursor:pointer;">Skip — don't record</button>
+  </div>
+</div>
+
 <!-- STRETCH TAB -->
 <div id="page-stretch" class="page">
   <p class="section-label">Post-session static stretches</p>
-
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
     <button class="stretch-filter-btn active" onclick="filterStretches('all',this)">All</button>
     <button class="stretch-filter-btn" onclick="filterStretches('hips',this)">Hips</button>
     <button class="stretch-filter-btn" onclick="filterStretches('legs',this)">Legs</button>
     <button class="stretch-filter-btn" onclick="filterStretches('upper',this)">Upper body</button>
   </div>
-
   <div id="stretch-list"></div>
-
-  <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;">Hold each stretch after training when muscles are warm. Tension, not pain.</p>
+  <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6;">Hold each stretch before training when muscles are warm. Tension, not pain.</p>
 </div>
 
 <style>
@@ -806,11 +819,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .stretch-filter-btn.active {
-    background: var(--red);
-    border-color: var(--red);
-    color: white;
-  }
+  .stretch-filter-btn.active { background: var(--red); border-color: var(--red); color: white; }
   .stretch-item {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -819,71 +828,18 @@
     overflow: hidden;
     cursor: pointer;
   }
-  .stretch-item-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 13px 14px;
-  }
-  .stretch-num {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--red);
-    min-width: 20px;
-    letter-spacing: 0.04em;
-  }
-  .stretch-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-    flex: 1;
-  }
-  .stretch-muscle {
-    font-size: 11px;
-    color: var(--text3);
-  }
-  .stretch-chevron {
-    font-size: 16px;
-    color: var(--text3);
-    transition: transform 0.2s;
-    line-height: 1;
-  }
-  .stretch-item.open .stretch-chevron { transform: rotate(180deg) scaleX(-1); }
-  .stretch-body {
-    display: none;
-    padding: 0 14px 14px;
-    border-top: 1px solid var(--border);
-    margin: 0 14px;
-  }
+  .stretch-item-header { display: flex; align-items: center; gap: 10px; padding: 13px 14px; }
+  .stretch-num { font-size: 11px; font-weight: 700; color: var(--red); min-width: 20px; letter-spacing: 0.04em; }
+  .stretch-name { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+  .stretch-muscle { font-size: 11px; color: var(--text3); }
+  .stretch-chevron { font-size: 14px; color: var(--text3); transition: transform 0.2s; line-height: 1; }
+  .stretch-item.open .stretch-chevron { transform: rotate(90deg); }
+  .stretch-body { display: none; padding: 0 14px 14px; border-top: 1px solid var(--border); margin: 0 14px; }
   .stretch-item.open .stretch-body { display: block; }
-  .stretch-how {
-    font-size: 13px;
-    color: var(--text2);
-    line-height: 1.65;
-    margin: 12px 0 10px;
-  }
-  .stretch-meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .stretch-hold-badge {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--red);
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 10px;
-    letter-spacing: 0.04em;
-  }
-  .stretch-tip {
-    font-size: 12px;
-    color: var(--text3);
-    font-style: italic;
-    line-height: 1.5;
-  }
+  .stretch-how { font-size: 13px; color: var(--text2); line-height: 1.65; margin: 12px 0 10px; }
+  .stretch-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .stretch-hold-badge { font-size: 12px; font-weight: 600; color: var(--red); background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; letter-spacing: 0.04em; }
+  .stretch-tip { font-size: 12px; color: var(--text3); font-style: italic; line-height: 1.5; }
 </style>
 
 <div class="toast" id="toast"></div>
@@ -1170,9 +1126,25 @@ function saveSession() {
     zoneData
   };
 
+  // Store pending session and show stretch modal
+  pendingSession = session;
+  document.getElementById('stretch-modal-bg').style.display = 'flex';
+  document.getElementById('stretch-modal').style.display = 'block';
+}
+
+let pendingSession = null;
+
+function confirmStretchAndSave(stretched) {
+  if (!pendingSession) return;
+  pendingSession.stretched = stretched;
+
   const sessions = getSessions();
-  sessions.unshift(session);
+  sessions.unshift(pendingSession);
   saveSessions(sessions);
+
+  const t = pendingSession.type;
+  const date = pendingSession.date;
+  const sets = pendingSession.sets;
 
   // Update calendar
   const cal = getCalendar();
@@ -1187,10 +1159,14 @@ function saveSession() {
 
   updateStreak();
   showToast('Session saved ✓');
+  pendingSession = null;
   sessionData = { type: t, date: new Date().toISOString().slice(0,10), sets: {}, techniques: [], rounds: [], rating: 0 };
   document.querySelectorAll('.workout-type-btn').forEach(b => b.classList.remove('selected'));
   currentWorkout = null;
   document.getElementById('session-form').innerHTML = '';
+
+  document.getElementById('stretch-modal-bg').style.display = 'none';
+  document.getElementById('stretch-modal').style.display = 'none';
 }
 
 function parseSetStr(raw) {
@@ -1284,7 +1260,7 @@ function renderHistory() {
         <span class="history-type">${TYPE_LABELS[s.type] || s.type}</span>
         <span class="history-date">${formatDate(s.date)}</span>
       </div>
-      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}${(s.time && s.endTime) ? '  •  '+calcDuration(s.time,s.endTime) : ''}</div>
+      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}${(s.time && s.endTime) ? '  •  '+calcDuration(s.time,s.endTime) : ''}${s.stretched === true ? '  •  <span style="color:#4CAF50;font-weight:600;">stretched ✓</span>' : s.stretched === false ? '  •  <span style="color:var(--text3);">no stretch</span>' : ''}</div>
       ${s.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic;">"${s.notes.slice(0,80)}${s.notes.length>80?'…':''}"</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
         <div class="history-rating">${dots}</div>
@@ -1942,7 +1918,7 @@ if ('serviceWorker' in navigator) {
   event.target.value = '';
 }
 
-// ── STRETCH TAB ──────────────────────────────────────────────
+// ── STRETCH TAB ───────────────────────────────────────────────
 const STRETCHES = [
   { num:1, title:'Low lunge hip flexor', category:'hips', muscle:'Hip flexors · psoas', hold:45,
     how:'Step one foot forward into a lunge and lower the back knee to the floor. Drive your hips forward and down until you feel a deep stretch through the front of the rear hip. Keep your torso upright.',
@@ -1992,8 +1968,7 @@ function filterStretches(cat, btn) {
 }
 
 function toggleStretch(num) {
-  const el = document.getElementById('stretch-' + num);
-  el.classList.toggle('open');
+  document.getElementById('stretch-' + num).classList.toggle('open');
 }
 
 function renderStretches() {
@@ -2008,7 +1983,7 @@ function renderStretches() {
           <div class="stretch-name">${s.title}</div>
           <div class="stretch-muscle">${s.muscle}</div>
         </div>
-        <span class="stretch-chevron">▾</span>
+        <span class="stretch-chevron">›</span>
       </div>
       <div class="stretch-body">
         <div class="stretch-how">${s.how}</div>
@@ -2018,7 +1993,6 @@ function renderStretches() {
         </div>
       </div>
     </div>`).join('');
-  // Rotate chevrons for open items (re-render closes all, which is fine)
 }
 
 </script>
