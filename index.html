@@ -1560,8 +1560,47 @@ function saveEditSession(id) {
 
 function deleteSession(id) {
   if (!confirm('Delete this session? This cannot be undone.')) return;
-  const sessions = getSessions().filter(x => x.id !== id);
+  const all = getSessions();
+  const target = all.find(x => x.id === id);
+  const sessions = all.filter(x => x.id !== id);
   saveSessions(sessions);
+
+  // Clean up progress entry for this session's date/type
+  if (target && ['A','B','C'].includes(target.type)) {
+    const p = getProgress();
+    const wt = target.type;
+    const date = target.date;
+    if (p[wt]) {
+      // Only remove if no other session on the same date has the same type
+      const sameDayRemains = sessions.some(s => s.date === date && s.type === wt);
+      if (!sameDayRemains) {
+        const exs = WORKOUT_EXERCISES[wt];
+        exs.forEach((_, exIdx) => {
+          if (p[wt][exIdx]) {
+            delete p[wt][exIdx][date];
+            // Recalculate PB from remaining entries
+            let pbWeight = 0, pbReps = 0;
+            Object.keys(p[wt][exIdx]).filter(k => k !== 'pb').forEach(k => {
+              const val = p[wt][exIdx][k];
+              if (typeof val === 'string') {
+                const parts = val.split('/');
+                const w = parseFloat(parts[0]) || 0;
+                const r = parseFloat(parts[1]) || 0;
+                if (w > pbWeight) { pbWeight = w; pbReps = r; }
+              }
+            });
+            if (pbWeight) {
+              p[wt][exIdx].pb = pbWeight + 'kg / ' + pbReps + ' reps';
+            } else {
+              delete p[wt][exIdx].pb;
+            }
+          }
+        });
+        saveProgress(p);
+      }
+    }
+  }
+
   closeEditModal();
   showToast('Session deleted');
   renderHistory();
