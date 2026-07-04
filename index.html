@@ -1903,6 +1903,48 @@ function closeCalModal() {
   document.getElementById('cal-modal').style.display = 'none';
 }
 
+// On load: reconcile progress data against actual logged sessions
+// This removes any progress entries for dates that have no corresponding session
+(function reconcileProgress() {
+  const sessions = getSessions();
+  const p = getProgress();
+  let changed = false;
+
+  ['A','B','C'].forEach(wt => {
+    if (!p[wt]) return;
+    const loggedDates = new Set(sessions.filter(s => s.type === wt).map(s => s.date));
+    const exs = WORKOUT_EXERCISES[wt] || [];
+    exs.forEach((_, exIdx) => {
+      if (!p[wt][exIdx]) return;
+      Object.keys(p[wt][exIdx]).filter(k => k !== 'pb' && k.match(/^\d{4}-\d{2}-\d{2}$/)).forEach(date => {
+        if (!loggedDates.has(date)) {
+          delete p[wt][exIdx][date];
+          changed = true;
+        }
+      });
+      // Recalculate PB from remaining entries
+      let pbWeight = 0, pbReps = 0;
+      Object.keys(p[wt][exIdx]).filter(k => k !== 'pb').forEach(k => {
+        const val = p[wt][exIdx][k];
+        if (typeof val === 'string') {
+          const parts = val.split('/');
+          const w = parseFloat(parts[0]) || 0;
+          const r = parseFloat(parts[1]) || 0;
+          if (w > pbWeight) { pbWeight = w; pbReps = r; }
+        }
+      });
+      const newPb = pbWeight ? pbWeight + 'kg / ' + pbReps + ' reps' : '';
+      if (newPb !== (p[wt][exIdx].pb || '')) {
+        if (newPb) p[wt][exIdx].pb = newPb;
+        else delete p[wt][exIdx].pb;
+        changed = true;
+      }
+    });
+  });
+
+  if (changed) saveProgress(p);
+})();
+
 updateStreak();
 function exportData() {
   const data = {
