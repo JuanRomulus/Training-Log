@@ -2216,7 +2216,7 @@ function calTap(dateStr) {
   const sessions = getSessions().filter(s => s.date === dateStr);
   const cal = getCalendar();
   const planned = cal[dateStr] || [];
-  const types = ['A','B','C','BAG','SPAR','CAR','REST'];
+  const types = ['A','B','C','BAG','SPAR','MTT','CAR','REST'];
 
   // Format date nicely
   const d = new Date(dateStr + 'T00:00:00');
