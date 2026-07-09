@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muay-thai-log-v1';
+const CACHE_NAME = 'muay-thai-log-v2';
 const ASSETS = [
   './',
   './index.html'
@@ -27,21 +27,19 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch — serve from cache, fall back to network
+// Fetch — network first, so you always get the latest deploy when online.
+// Falls back to cache only when the network is unavailable (offline use).
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        // Cache any new successful responses
-        if (response && response.status === 200) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return response;
-      }).catch(() => {
-        // If offline and not cached, return the app shell
-        return caches.match('./index.html');
+    fetch(event.request).then(response => {
+      if (response && response.status === 200) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      }
+      return response;
+    }).catch(() => {
+      return caches.match(event.request).then(cached => {
+        return cached || caches.match('./index.html');
       });
     })
   );
