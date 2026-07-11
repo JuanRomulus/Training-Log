@@ -1444,6 +1444,22 @@ function viewSession(id) {
     detailHTML += `<p class="section-label" style="margin-top:16px;">Cardio log</p><div class="card" style="padding:8px 16px;">${zoneRows}</div>`;
   }
 
+  // MT Technical goal / techniques / comments
+  if (t === 'MTT' && s.mttData) {
+    if (s.mttData.goal) {
+      detailHTML += `<p class="section-label" style="margin-top:16px;">Session goal</p>
+      <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;">${s.mttData.goal}</p></div>`;
+    }
+    if (s.mttData.techniques) {
+      detailHTML += `<p class="section-label" style="margin-top:16px;">Techniques drilled</p>
+      <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;white-space:pre-wrap;">${s.mttData.techniques}</p></div>`;
+    }
+    if (s.mttData.comments) {
+      detailHTML += `<p class="section-label" style="margin-top:16px;">Comments</p>
+      <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;white-space:pre-wrap;">${s.mttData.comments}</p></div>`;
+    }
+  }
+
   // Notes
   if (s.notes) {
     detailHTML += `<p class="section-label" style="margin-top:16px;">Notes</p>
@@ -1565,6 +1581,13 @@ function editSession(id) {
       ${exerciseRows}
       ${roundRows}
       ${techRows}
+      ${t === 'MTT' ? `
+      <p class="section-label" style="margin-top:16px;">MT Technical</p>
+      <div class="card">
+        <div class="info-field" style="margin-bottom:12px;"><label>Session goal</label><textarea id="edit-mtt-goal" placeholder="What are you working on today?">${s.mttData?.goal||''}</textarea></div>
+        <div class="info-field" style="margin-bottom:12px;"><label>Techniques drilled</label><textarea id="edit-mtt-techniques" placeholder="Techniques, combinations, concepts covered...">${s.mttData?.techniques||''}</textarea></div>
+        <div class="info-field"><label>Comments</label><textarea id="edit-mtt-comments" placeholder="Corrections received, things to revisit...">${s.mttData?.comments||''}</textarea></div>
+      </div>` : ''}
       <p class="section-label" style="margin-top:16px;">Notes & rating</p>
       <div class="card">
         <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="edit-notes" placeholder="Observations…">${s.notes||''}</textarea></div>
@@ -1612,6 +1635,14 @@ function saveEditSession(id) {
   s.notes = document.getElementById('edit-notes')?.value || '';
   s.rating = window._editRating || s.rating;
   s.techniques = [...(window._editTechniques || [])];
+
+  if (s.type === 'MTT') {
+    s.mttData = {
+      goal: document.getElementById('edit-mtt-goal')?.value || '',
+      techniques: document.getElementById('edit-mtt-techniques')?.value || '',
+      comments: document.getElementById('edit-mtt-comments')?.value || ''
+    };
+  }
 
   if (['A','B','C'].includes(s.type)) {
     s.sets = {};
