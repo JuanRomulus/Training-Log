@@ -1071,8 +1071,8 @@ function renderSessionForm() {
   }
 
   if (t === 'SPAR') {
-    html += `<p class="section-label">Sparring rounds (6)</p><div class="card">`;
-    for (let r = 1; r <= 6; r++) {
+    html += `<p class="section-label">Sparring rounds (12)</p><div class="card">`;
+    for (let r = 1; r <= 12; r++) {
       html += `<div class="round-row">
         <div class="round-num">${r}</div>
         <input class="round-input" type="text" placeholder="Partner / focus (offence/defence/clinch)" data-round="${r}" data-field="focus">
@@ -1186,7 +1186,7 @@ function saveSession() {
 
   let rounds = [];
   if (t === 'BAG' || t === 'SPAR') {
-    const total = t === 'BAG' ? 8 : 6;
+    const total = t === 'BAG' ? 8 : 12;
     for (let r = 1; r <= total; r++) {
       const focus = document.querySelector(`[data-round="${r}"][data-field="focus"]`)?.value || '';
       const intensity = document.querySelector(`[data-round="${r}"][data-field="intensity"]`)?.value || '';
@@ -1530,8 +1530,8 @@ function editSession(id) {
 
   let roundRows = '';
   if (t === 'BAG' || t === 'SPAR') {
-    const total = t === 'BAG' ? 8 : 6;
-    roundRows = `<p class="section-label" style="margin-top:16px;">${t === 'BAG' ? 'Round log (8 rounds)' : 'Sparring rounds (6)'}</p><div class="card">` +
+    const total = t === 'BAG' ? 8 : 12;
+    roundRows = `<p class="section-label" style="margin-top:16px;">${t === 'BAG' ? 'Round log (8 rounds)' : 'Sparring rounds (12)'}</p><div class="card">` +
       Array.from({length: total}, (_, i) => {
         const r = s.rounds?.[i] || {};
         return `<div class="round-row">
@@ -1670,7 +1670,7 @@ function saveEditSession(id) {
   }
 
   if (s.type === 'BAG' || s.type === 'SPAR') {
-    const total = s.type === 'BAG' ? 8 : 6;
+    const total = s.type === 'BAG' ? 8 : 12;
     s.rounds = [];
     for (let r = 1; r <= total; r++) {
       const focus = document.querySelector(`.edit-round-focus[data-round="${r}"]`)?.value || '';
