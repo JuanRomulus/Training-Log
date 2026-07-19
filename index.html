@@ -130,6 +130,34 @@
     scrollbar-width: none;
   }
   .nav-tabs::-webkit-scrollbar { display: none; }
+
+  /* Progress quick-jump index */
+  .progress-index {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    margin-bottom: 18px;
+    scrollbar-width: none;
+  }
+  .progress-index::-webkit-scrollbar { display: none; }
+  .progress-index-btn {
+    flex-shrink: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .progress-index-btn:active {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+    transform: translateY(1px);
+  }
   .tab-btn {
     flex-shrink: 0;
     background: var(--bg3);
@@ -804,15 +832,22 @@
 
 <!-- PROGRESS TAB -->
 <div id="page-progress" class="page">
-  <p class="section-label">Workout A — Personal records</p>
+  <div class="progress-index">
+    <button class="progress-index-btn" onclick="jumpToProgress('progress-anchor-A')">A</button>
+    <button class="progress-index-btn" onclick="jumpToProgress('progress-anchor-B')">B</button>
+    <button class="progress-index-btn" onclick="jumpToProgress('progress-anchor-C')">C</button>
+    <button class="progress-index-btn" onclick="jumpToProgress('progress-anchor-MTT')">MT Technical</button>
+    <button class="progress-index-btn" onclick="jumpToProgress('progress-anchor-SPAR')">Sparring</button>
+  </div>
+  <p class="section-label" id="progress-anchor-A">Workout A — Personal records</p>
   <div id="progress-A"></div>
-  <p class="section-label">Workout B — Personal records</p>
+  <p class="section-label" id="progress-anchor-B">Workout B — Personal records</p>
   <div id="progress-B"></div>
-  <p class="section-label">Workout C — Personal records</p>
+  <p class="section-label" id="progress-anchor-C">Workout C — Personal records</p>
   <div id="progress-C"></div>
-  <p class="section-label" style="margin-top:24px;">MT Technical — Session ratings</p>
+  <p class="section-label" id="progress-anchor-MTT" style="margin-top:24px;">MT Technical — Session ratings</p>
   <div id="progress-MTT"></div>
-  <p class="section-label" style="margin-top:24px;">Sparring — Performance tracker</p>
+  <p class="section-label" id="progress-anchor-SPAR" style="margin-top:24px;">Sparring — Performance tracker</p>
   <div id="progress-SPAR"></div>
 </div>
 
@@ -2112,6 +2147,11 @@ function renderSparProgress() {
     '</div>';
 }
 
+
+function jumpToProgress(anchorId) {
+  const el = document.getElementById(anchorId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function renderProgress() {
   ['A','B','C'].forEach(wt => {
