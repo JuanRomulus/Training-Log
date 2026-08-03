@@ -63,6 +63,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   img { max-width: 100%; height: auto; display: block; }
+  html { overflow-x: hidden; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -72,6 +73,7 @@
     min-height: 100vh;
     max-width: 480px;
     margin: 0 auto;
+    overflow-x: hidden;
   }
 
   /* Header */
@@ -126,6 +128,7 @@
   .nav-tabs {
     display: flex;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     gap: 6px;
     padding: 14px 20px 0;
     scrollbar-width: none;
@@ -136,6 +139,7 @@
   .progress-index {
     display: flex;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     gap: 6px;
     margin-bottom: 18px;
     scrollbar-width: none;
@@ -538,6 +542,7 @@
     flex-direction: row;
     gap: 6px;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     padding-bottom: 6px;
     scrollbar-width: none;
   }
@@ -1022,6 +1027,7 @@ function showToast(msg) {
 }
 
 function showTab(tab) {
+  window.scrollTo(0, 0);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
