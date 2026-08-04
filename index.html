@@ -967,8 +967,8 @@
 <script>
 const WORKOUT_EXERCISES = {
   A: [
-    { name: 'Thoracic extension', reps: '3×30s' },
-    { name: 'Prone scapula retraction', reps: '3×30s' },
+    { name: 'Thoracic extension', reps: '3×30s', hold: true },
+    { name: 'Prone scapula retraction', reps: '3×30s', hold: true },
     { name: 'Single leg Romanian deadlift', reps: '3×10' },
     { name: '90° single leg press', reps: '3×10' },
     { name: 'Knee extension', reps: '3×10' },
@@ -977,8 +977,8 @@ const WORKOUT_EXERCISES = {
     { name: 'Pallof press', reps: '3×10' },
   ],
   B: [
-    { name: 'Thoracic extension', reps: '3×30s' },
-    { name: 'Prone scapula retraction', reps: '3×30s' },
+    { name: 'Thoracic extension', reps: '3×30s', hold: true },
+    { name: 'Prone scapula retraction', reps: '3×30s', hold: true },
     { name: 'Deadlift (trap bar)', reps: '3×10', note: '40kg start' },
     { name: '45° leg press', reps: '3×10', note: '50kg start' },
     { name: 'Single leg hamstring curls', reps: '3×12' },
@@ -987,8 +987,8 @@ const WORKOUT_EXERCISES = {
     { name: 'Double dead bugs', reps: '3×10' },
   ],
   C: [
-    { name: 'Thoracic extension', reps: '3×30s' },
-    { name: 'Prone scapula retraction', reps: '3×30s' },
+    { name: 'Thoracic extension', reps: '3×30s', hold: true },
+    { name: 'Prone scapula retraction', reps: '3×30s', hold: true },
     { name: 'Shoulder internal rotation', reps: '3×15' },
     { name: 'Shoulder external rotation', reps: '3×15' },
     { name: 'Lateral raises', reps: '15–20' },
@@ -1835,13 +1835,26 @@ function shortDate(iso) {
 }
 
 const progChartMode = {}; // key: wt+exIdx -> 'weight' | 'reps'
-function buildProgressChart(entries, dates, mode) {
+
+// Robust parsers: entries are freeform text (e.g. "90kg x 10", "90/10", "30s"),
+// so pull numbers out by position rather than requiring an exact delimiter.
+function parseStrengthEntry(raw) {
+  const nums = (String(raw).match(/[\d.]+/g) || []).map(Number);
+  return { w: nums[0] || 0, r: nums[1] || 0 };
+}
+function parseHoldEntry(raw) {
+  const m = String(raw).match(/[\d.]+/);
+  return m ? parseFloat(m[0]) : 0;
+}
+
+function buildProgressChart(entries, dates, mode, type) {
+  const isHold = type === 'hold';
+
   // Filter to dates that have data
   const points = dates.map(d => {
     const raw = entries[d] || '';
-    const parts = raw.split('/');
-    const w = parseFloat(parts[0]) || 0;
-    const r = parseFloat(parts[1]) || 0;
+    if (isHold) return { date: d, val: parseHoldEntry(raw) };
+    const { w, r } = parseStrengthEntry(raw);
     return { date: d, val: mode === 'weight' ? w : r };
   }).filter(p => p.val > 0);
 
@@ -1857,14 +1870,20 @@ function buildProgressChart(entries, dates, mode) {
   const ys = points.map(p => H - PAD - ((p.val - minV) / range) * (H - PAD * 2));
   const polyline = xs.map((x, idx) => `${x},${ys[idx]}`).join(' ');
   const fill = `${xs[0]},${H} ` + xs.map((x, idx) => `${x},${ys[idx]}`).join(' ') + ` ${xs[xs.length-1]},${H}`;
-  const color = mode === 'weight' ? '#C0392B' : '#5B9BD5';
-  const fillColor = mode === 'weight' ? 'rgba(192,57,43,0.08)' : 'rgba(91,155,213,0.08)';
+  const color = isHold ? '#5B9BD5' : (mode === 'weight' ? '#C0392B' : '#5B9BD5');
+  const fillColor = isHold ? 'rgba(91,155,213,0.08)' : (mode === 'weight' ? 'rgba(192,57,43,0.08)' : 'rgba(91,155,213,0.08)');
 
+  // Faint dot on every point so the shape of the data always reads consistently...
+  const allDots = points.map((_, idx) =>
+    `<circle cx="${xs[idx]}" cy="${ys[idx]}" r="2" fill="${color}" opacity="0.35"/>`
+  ).join('');
+
+  // ...plus a labelled dot on the points that matter: first, last, PB.
   const dots = points.map((p, idx) => {
     const isFirst = idx === 0, isLast = idx === points.length - 1, isPB = p.val === maxV;
     if (!isFirst && !isLast && !isPB) return '';
     const dotColor = isPB ? '#D4A017' : color;
-    const label = mode === 'weight' ? `${p.val}kg` : `${p.val}`;
+    const label = isHold ? `${p.val}s` : (mode === 'weight' ? `${p.val}kg` : `${p.val}`);
     const labelY = ys[idx] < 18 ? ys[idx] + 13 : ys[idx] - 5;
     return `<circle cx="${xs[idx]}" cy="${ys[idx]}" r="3.5" fill="${dotColor}"/>
       <text x="${xs[idx]}" y="${labelY}" fill="${dotColor}" font-size="9" text-anchor="middle" font-family="system-ui">${label}</text>`;
@@ -1879,6 +1898,7 @@ function buildProgressChart(entries, dates, mode) {
     <line x1="${PAD}" y1="${PAD+(H-PAD*2)/2}" x2="${W-PAD}" y2="${PAD+(H-PAD*2)/2}" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="3,3"/>
     <polygon points="${fill}" fill="${fillColor}"/>
     <polyline points="${polyline}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${allDots}
     ${dots}
     <text x="${xs[0]}" y="${H+2}" fill="rgba(255,255,255,0.2)" font-size="8" text-anchor="start" font-family="system-ui">${firstDate}</text>
     <text x="${xs[xs.length-1]}" y="${H+2}" fill="rgba(255,255,255,0.2)" font-size="8" text-anchor="end" font-family="system-ui">${lastDate}</text>
@@ -2188,9 +2208,10 @@ function renderProgress() {
       const key = wt + i;
       if (!progChartMode[key]) progChartMode[key] = 'weight';
       const mode = progChartMode[key];
+      const type = ex.hold ? 'hold' : 'strength';
 
       // Build chart
-      const chartSVG = allDates.length >= 1 ? buildProgressChart(entries, allDates, mode) : '';
+      const chartSVG = allDates.length >= 1 ? buildProgressChart(entries, allDates, mode, type) : '';
 
       return `<div class="progress-exercise">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
@@ -2199,11 +2220,11 @@ function renderProgress() {
 
         ${chartSVG ? `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${mode === 'weight' ? 'Weight (kg)' : 'Reps'} over time</span>
-            <div style="display:flex;gap:4px;">
+            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${type === 'hold' ? 'Hold time (s)' : (mode === 'weight' ? 'Weight (kg)' : 'Reps')} over time</span>
+            ${type === 'hold' ? '' : `<div style="display:flex;gap:4px;">
               <button onclick="setProgChartMode('${wt}',${i},'weight')" style="background:${mode==='weight'?'#C0392B':'var(--bg4)'};border:1px solid ${mode==='weight'?'#C0392B':'var(--border)'};border-radius:5px;color:${mode==='weight'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Weight</button>
               <button onclick="setProgChartMode('${wt}',${i},'reps')" style="background:${mode==='reps'?'#5B9BD5':'var(--bg4)'};border:1px solid ${mode==='reps'?'#5B9BD5':'var(--border)'};border-radius:5px;color:${mode==='reps'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Reps</button>
-            </div>
+            </div>`}
           </div>
           ${chartSVG}
         </div>` : '<div style="font-size:12px;color:var(--text3);padding:4px 0 10px;">No sessions yet — log a workout to start tracking</div>'}
@@ -2211,14 +2232,14 @@ function renderProgress() {
         <div class="progress-weeks" id="pw-${wt}-${i}">
           ${allDates.length ? allDates.map(d => `<div class="progress-week" style="width:62px;">
             <label style="font-size:9px;white-space:nowrap;">${shortDate(d)}</label>
-            <input type="text" value="${entries[d]||''}" placeholder="—" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
+            <input type="text" value="${entries[d]||''}" placeholder="${type === 'hold' ? '30s' : '90kg x 10'}" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
           </div>`).join('') : ''}
         </div>
 
         <div style="margin-top:8px;">
-          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Personal best</label>
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${type === 'hold' ? 'Best hold' : 'Personal best'}</label>
           <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);"
-            placeholder="e.g. 90kg / 10 reps" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
+            placeholder="${type === 'hold' ? 'e.g. 45s' : 'e.g. 90kg x 10'}" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
         </div>
       </div>`;
     }).join('');
