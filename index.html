@@ -150,6 +150,37 @@
   }
   .tab-btn:active { transform: translateY(1px); }
 
+  /* Progress sub-nav */
+  .progress-subnav {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+  }
+  .progress-subnav::-webkit-scrollbar { display: none; }
+  .subtab-btn {
+    flex-shrink: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .subtab-btn.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg);
+    box-shadow: var(--shadow-inset-top);
+  }
+  .subtab-btn:active { transform: translateY(1px); }
+  .progress-section { display: none; }
+  .progress-section.active { display: block; }
+
   /* Page views */
   .page { display: none; padding: 20px; position:relative; z-index:1; }
   .page.active { display: block; }
@@ -804,16 +835,34 @@
 
 <!-- PROGRESS TAB -->
 <div id="page-progress" class="page">
-  <p class="section-label">Workout A — Personal records</p>
-  <div id="progress-A"></div>
-  <p class="section-label">Workout B — Personal records</p>
-  <div id="progress-B"></div>
-  <p class="section-label">Workout C — Personal records</p>
-  <div id="progress-C"></div>
-  <p class="section-label" style="margin-top:24px;">MT Technical — Session ratings</p>
-  <div id="progress-MTT"></div>
-  <p class="section-label" style="margin-top:24px;">Sparring — Performance tracker</p>
-  <div id="progress-SPAR"></div>
+  <div class="progress-subnav" id="progress-subnav">
+    <button class="subtab-btn active" data-psec="A" onclick="showProgressSection('A')">Workout A</button>
+    <button class="subtab-btn" data-psec="B" onclick="showProgressSection('B')">Workout B</button>
+    <button class="subtab-btn" data-psec="C" onclick="showProgressSection('C')">Workout C</button>
+    <button class="subtab-btn" data-psec="MTT" onclick="showProgressSection('MTT')">MT Technical</button>
+    <button class="subtab-btn" data-psec="SPAR" onclick="showProgressSection('SPAR')">Sparring</button>
+  </div>
+
+  <div class="progress-section active" data-psec="A">
+    <p class="section-label">Workout A — Personal records</p>
+    <div id="progress-A"></div>
+  </div>
+  <div class="progress-section" data-psec="B">
+    <p class="section-label">Workout B — Personal records</p>
+    <div id="progress-B"></div>
+  </div>
+  <div class="progress-section" data-psec="C">
+    <p class="section-label">Workout C — Personal records</p>
+    <div id="progress-C"></div>
+  </div>
+  <div class="progress-section" data-psec="MTT">
+    <p class="section-label">MT Technical — Session ratings</p>
+    <div id="progress-MTT"></div>
+  </div>
+  <div class="progress-section" data-psec="SPAR">
+    <p class="section-label">Sparring — Performance tracker</p>
+    <div id="progress-SPAR"></div>
+  </div>
 </div>
 
 <!-- CALENDAR TAB -->
@@ -978,6 +1027,12 @@ function saveProgress(p) { setData('mt_progress', p); }
 function getCalendar() { return getData('mt_calendar') || {}; }
 function saveCalendar(c) { setData('mt_calendar', c); }
 
+function showProgressSection(sec) {
+  document.querySelectorAll('.progress-section').forEach(s => s.classList.toggle('active', s.dataset.psec === sec));
+  document.querySelectorAll('#progress-subnav .subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.psec === sec));
+  setData('mt_progress_lastsec', sec);
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -991,7 +1046,7 @@ function showTab(tab) {
   document.getElementById('page-' + tab).classList.add('active');
   document.querySelectorAll('.tab-btn')[['intro','programme','log','history','progress','stretch','calendar'].indexOf(tab)].classList.add('active');
   if (tab === 'history') renderHistory();
-  if (tab === 'progress') renderProgress();
+  if (tab === 'progress') { renderProgress(); showProgressSection(getData('mt_progress_lastsec') || 'A'); }
   if (tab === 'calendar') renderCalendar();
   if (tab === 'stretch') renderStretches();
   const wm = document.getElementById('fighter-watermark');
