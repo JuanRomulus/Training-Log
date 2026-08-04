@@ -1180,6 +1180,7 @@ function renderSessionForm() {
 
   html += `<p class="section-label">Session notes & rating</p><div class="card">
     <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="f-notes" placeholder="Observations, things to work on…"></textarea></div>
+    ${t === 'SPAR' ? `<div class="info-field" style="margin-bottom:12px;"><label>YouTube highlights link</label><input type="url" id="f-video" placeholder="Paste your YouTube link"></div>` : ''}
     <div class="rating-row">
       <span class="rating-label">Rating:</span>
       ${[1,2,3,4,5,6,7,8,9,10].map(n => `<button class="rating-btn" onclick="setRating(${n})" id="rat-${n}">${n}</button>`).join('')}
@@ -1217,6 +1218,7 @@ function saveSession() {
   const energy = document.getElementById('f-energy')?.value || '';
   const sleep = document.getElementById('f-sleep')?.value || '';
   const notes = document.getElementById('f-notes')?.value || '';
+  const video = document.getElementById('f-video')?.value || '';
 
   let sets = {};
   document.querySelectorAll('.set-inp-w').forEach(inp => {
@@ -1276,6 +1278,7 @@ function saveSession() {
     energy,
     sleep,
     notes,
+    video,
     rating: sessionData.rating,
     techniques: [...(sessionData.techniques || [])],
     sets,
@@ -1417,7 +1420,7 @@ function renderHistory() {
         <span class="history-type">${TYPE_LABELS[s.type] || s.type}</span>
         <span class="history-date">${formatDate(s.date)}</span>
       </div>
-      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}${(s.time && s.endTime) ? '  •  '+calcDuration(s.time,s.endTime) : ''}${s.stretched === true ? '  •  <span style="color:#4CAF50;font-weight:600;">stretched ✓</span>' : s.stretched === false ? '  •  <span style="color:var(--text3);">no stretch</span>' : ''}</div>
+      <div class="history-meta">${meta}Energy ${s.energy||'—'}/10  •  Sleep ${s.sleep||'—'}h${techStr}${roundStr}${(s.time && s.endTime) ? '  •  '+calcDuration(s.time,s.endTime) : ''}${s.stretched === true ? '  •  <span style="color:#4CAF50;font-weight:600;">stretched ✓</span>' : s.stretched === false ? '  •  <span style="color:var(--text3);">no stretch</span>' : ''}${s.video ? '  •  <span style="color:var(--gold);">🎥 video</span>' : ''}</div>
       ${s.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic;">"${s.notes.slice(0,80)}${s.notes.length>80?'…':''}"</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
         <div class="history-rating">${dots}</div>
@@ -1540,6 +1543,8 @@ function viewSession(id) {
         ${s.sleep ? `<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Sleep</div><div style="font-size:16px;font-weight:600;color:var(--text);">${s.sleep}h</div></div>` : ''}
       </div>
 
+      ${s.video ? `<div style="margin-top:12px;"><a href="${s.video}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:var(--radius);color:var(--gold);font-size:14px;font-weight:600;padding:12px;text-decoration:none;">🎥 Watch session video</a></div>` : ''}
+
       ${detailHTML}
 
       ${s.rating ? `<p class="section-label" style="margin-top:16px;">Session rating</p>
@@ -1646,6 +1651,7 @@ function editSession(id) {
       <p class="section-label" style="margin-top:16px;">Notes & rating</p>
       <div class="card">
         <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="edit-notes" placeholder="Observations…">${s.notes||''}</textarea></div>
+        ${t === 'SPAR' ? `<div class="info-field" style="margin-bottom:12px;"><label>YouTube highlights link</label><input type="url" id="edit-video" value="${s.video||''}" placeholder="Paste your YouTube link"></div>` : ''}
         <div class="rating-row">
           <span class="rating-label">Rating:</span>
           ${ratingBtns}
@@ -1688,6 +1694,7 @@ function saveEditSession(id) {
   s.energy = document.getElementById('edit-energy')?.value || '';
   s.sleep = document.getElementById('edit-sleep')?.value || '';
   s.notes = document.getElementById('edit-notes')?.value || '';
+  s.video = document.getElementById('edit-video')?.value || '';
   s.rating = window._editRating || s.rating;
   s.techniques = [...(window._editTechniques || [])];
 
@@ -2045,7 +2052,7 @@ function renderSparProgress() {
       ? Math.round(scoredRounds.reduce((sum, r) => sum + parseFloat(r.intensity), 0) / scoredRounds.length * 10) / 10
       : null;
     const rating = parseFloat(s.rating) > 0 ? parseFloat(s.rating) : null;
-    return { date: s.date, rating, avgIntensity, techniques: s.techniques || [] };
+    return { date: s.date, rating, avgIntensity, techniques: s.techniques || [], video: s.video || '' };
   });
 
   function shortD(iso) {
@@ -2132,10 +2139,11 @@ function renderSparProgress() {
     const iVal = p.avgIntensity !== null ? p.avgIntensity : '—';
     const rColor = p.rating >= 7 ? '#4CAF50' : p.rating >= 5 ? '#D4A017' : p.rating ? '#C0392B' : 'var(--text3)';
     const iColor = p.avgIntensity >= 7 ? '#4CAF50' : p.avgIntensity >= 5 ? '#D4A017' : p.avgIntensity ? '#C0392B' : 'var(--text3)';
-    return '<div style="display:grid;grid-template-columns:1fr 60px 60px;gap:4px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+    return '<div style="display:grid;grid-template-columns:1fr 50px 50px 26px;gap:4px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
       '<span style="font-size:12px;color:var(--text2);">' + shortD(p.date) + '</span>' +
       '<span style="font-size:13px;font-weight:700;color:' + rColor + ';text-align:center;">' + rVal + '</span>' +
       '<span style="font-size:13px;font-weight:700;color:' + iColor + ';text-align:center;">' + iVal + '</span>' +
+      (p.video ? '<a href="' + p.video + '" target="_blank" rel="noopener noreferrer" style="text-align:center;text-decoration:none;font-size:14px;" title="Watch highlights">🎥</a>' : '<span></span>') +
       '</div>';
   }).join('');
 
