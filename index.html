@@ -485,6 +485,28 @@
   }
   .save-btn:active { opacity: 0.9; transform: translateY(1px) scale(0.99); box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
 
+  /* Screenshot upload */
+  .photo-upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 20px 14px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .photo-upload-zone:active { background: var(--bg4); border-color: var(--gold); }
+  .photo-preview-box { position: relative; }
+  .photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: var(--radius-sm); display: block; border: 1px solid var(--border); }
+  .photo-remove-btn {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(13,13,13,0.8); border: 1px solid var(--border2);
+    color: var(--text); font-size: 16px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
   /* History list */
   .history-item {
     background: linear-gradient(180deg, var(--bg3), var(--bg2) 40%);
@@ -1014,6 +1036,7 @@ const TECHNIQUES_SPAR = [
 
 let currentWorkout = null;
 let sessionData = {};
+let currentPhotoDataUrl = null;
 
 const TRANSLATIONS = {
   en: {
@@ -1132,6 +1155,7 @@ function spinTigerBadge() {
 function selectWorkout(type) {
   currentWorkout = type;
   sessionData = { type, date: new Date().toISOString().slice(0,10), sets: {}, techniques: [], rounds: [], rating: 0 };
+  currentPhotoDataUrl = null;
   document.querySelectorAll('.workout-type-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('wt-' + type).classList.add('selected');
   renderSessionForm();
@@ -1245,6 +1269,14 @@ function renderSessionForm() {
     </div>`;
   }
 
+  if (['SPAR','CAR','MTT'].includes(t)) {
+    html += `<p class="section-label">Screenshot</p>
+    <div class="card">
+      <input type="file" id="f-photo" accept="image/*" style="display:none;" onchange="handlePhotoSelect(this)">
+      <div id="photo-preview-wrap"><div class="photo-upload-zone" onclick="document.getElementById('f-photo').click()">📷 Tap to add a screenshot</div></div>
+    </div>`;
+  }
+
   html += `<p class="section-label">Session notes & rating</p><div class="card">
     <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="f-notes" placeholder="Observations, things to work on…"></textarea></div>
     ${t === 'SPAR' ? `<div class="info-field" style="margin-bottom:12px;"><label>YouTube highlights link</label><input type="url" id="f-video" placeholder="Paste your YouTube link"></div>` : ''}
@@ -1265,6 +1297,85 @@ function toggleTech(el, tech) {
   } else {
     sessionData.techniques = sessionData.techniques.filter(t => t !== tech);
   }
+}
+
+// ---------- Screenshot upload (Sparring / Zone 2 / MT Technical) ----------
+// Images are resized and re-compressed client-side before being stored as
+// base64 in localStorage — full-resolution phone photos would blow the
+// storage quota after a handful of sessions.
+function compressImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not decode image'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoZone(wrapId, dataUrl, uploadInputId, onRemove) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (dataUrl) {
+    wrap.innerHTML = `<div class="photo-preview-box">
+      <img class="photo-preview" src="${dataUrl}">
+      <button type="button" class="photo-remove-btn" onclick="${onRemove}">×</button>
+    </div>`;
+  } else {
+    wrap.innerHTML = `<div class="photo-upload-zone" onclick="document.getElementById('${uploadInputId}').click()">📷 Tap to add a screenshot</div>`;
+  }
+}
+
+function handlePhotoSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  compressImageFile(file, 1000, 0.75).then(dataUrl => {
+    currentPhotoDataUrl = dataUrl;
+    renderPhotoZone('photo-preview-wrap', currentPhotoDataUrl, 'f-photo', 'clearPhotoSelection()');
+  }).catch(err => {
+    console.warn(err);
+    showToast('Could not read that image.');
+  });
+}
+
+function clearPhotoSelection() {
+  currentPhotoDataUrl = null;
+  const input = document.getElementById('f-photo');
+  if (input) input.value = '';
+  renderPhotoZone('photo-preview-wrap', null, 'f-photo', 'clearPhotoSelection()');
+}
+
+function handleEditPhotoSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  compressImageFile(file, 1000, 0.75).then(dataUrl => {
+    window._editPhoto = dataUrl;
+    renderPhotoZone('edit-photo-preview-wrap', window._editPhoto, 'edit-photo', 'clearEditPhotoSelection()');
+  }).catch(err => {
+    console.warn(err);
+    showToast('Could not read that image.');
+  });
+}
+
+function clearEditPhotoSelection() {
+  window._editPhoto = null;
+  const input = document.getElementById('edit-photo');
+  if (input) input.value = '';
+  renderPhotoZone('edit-photo-preview-wrap', null, 'edit-photo', 'clearEditPhotoSelection()');
 }
 
 function setRating(n) {
@@ -1346,6 +1457,7 @@ function saveSession() {
     sleep,
     notes,
     video,
+    photo: currentPhotoDataUrl || null,
     rating: sessionData.rating,
     techniques: [...(sessionData.techniques || [])],
     sets,
@@ -1388,6 +1500,7 @@ function confirmStretchAndSave(stretched) {
   updateStreak();
   showToast('Session saved ✓');
   pendingSession = null;
+  currentPhotoDataUrl = null;
   sessionData = { type: t, date: new Date().toISOString().slice(0,10), sets: {}, techniques: [], rounds: [], rating: 0 };
   document.querySelectorAll('.workout-type-btn').forEach(b => b.classList.remove('selected'));
   currentWorkout = null;
@@ -1585,6 +1698,12 @@ function viewSession(id) {
     }
   }
 
+  // Screenshot
+  if (s.photo) {
+    detailHTML += `<p class="section-label" style="margin-top:16px;">Screenshot</p>
+    <div class="card" style="padding:8px;"><img src="${s.photo}" style="width:100%;border-radius:8px;display:block;"></div>`;
+  }
+
   // Notes
   if (s.notes) {
     detailHTML += `<p class="section-label" style="margin-top:16px;">Notes</p>
@@ -1715,6 +1834,12 @@ function editSession(id) {
         <div class="info-field" style="margin-bottom:12px;"><label>Techniques drilled</label><textarea id="edit-mtt-techniques" placeholder="Techniques, combinations, concepts covered...">${s.mttData?.techniques||''}</textarea></div>
         <div class="info-field"><label>Comments</label><textarea id="edit-mtt-comments" placeholder="Corrections received, things to revisit...">${s.mttData?.comments||''}</textarea></div>
       </div>` : ''}
+      ${['SPAR','CAR','MTT'].includes(t) ? `
+      <p class="section-label" style="margin-top:16px;">Screenshot</p>
+      <div class="card">
+        <input type="file" id="edit-photo" accept="image/*" style="display:none;" onchange="handleEditPhotoSelect(this)">
+        <div id="edit-photo-preview-wrap"></div>
+      </div>` : ''}
       <p class="section-label" style="margin-top:16px;">Notes & rating</p>
       <div class="card">
         <div class="info-field" style="margin-bottom:12px;"><label>Notes</label><textarea id="edit-notes" placeholder="Observations…">${s.notes||''}</textarea></div>
@@ -1734,6 +1859,10 @@ function editSession(id) {
   document.body.insertAdjacentHTML('beforeend', modalHTML);
   window._editTechniques = [...(s.techniques || [])];
   window._editRating = s.rating || 0;
+  window._editPhoto = s.photo || null;
+  if (['SPAR','CAR','MTT'].includes(t)) {
+    renderPhotoZone('edit-photo-preview-wrap', window._editPhoto, 'edit-photo', 'clearEditPhotoSelection()');
+  }
 }
 
 function setEditRating(n, id) {
@@ -1764,6 +1893,9 @@ function saveEditSession(id) {
   s.video = document.getElementById('edit-video')?.value || '';
   s.rating = window._editRating || s.rating;
   s.techniques = [...(window._editTechniques || [])];
+  if (['SPAR','CAR','MTT'].includes(s.type)) {
+    s.photo = window._editPhoto || null;
+  }
 
   if (s.type === 'MTT') {
     s.mttData = {
