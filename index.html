@@ -837,6 +837,11 @@
       <div class="wt-name">MT Tech</div>
       <div style="font-size:10px;color:var(--text3);margin-top:2px;">Technical session</div>
     </div>
+    <div class="workout-type-btn" onclick="selectWorkout('AR')" id="wt-AR">
+      <div class="wt-icon"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBVcGxvYWRlZCB0bzogU1ZHIFJlcG8sIHd3dy5zdmdyZXBvLmNvbSwgR2VuZXJhdG9yOiBTVkcgUmVwbyBNaXhlciBUb29scyAtLT4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8c3ZnIGZpbGw9IiMwMDAwMDAiIHZlcnNpb249IjEuMSIgaWQ9IkNhcGFfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgDQoJIHdpZHRoPSI4MDBweCIgaGVpZ2h0PSI4MDBweCIgdmlld0JveD0iMCAwIDIyNS41MzQgMjI1LjUzMyINCgkgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8Zz4NCgk8cGF0aCBkPSJNNjIuNzk0LDY5Ljc1MmMwLTEuMjkxLDEuMDQyLTIuMzMyLDIuMzI2LTIuMzMyaDEuNzk2Yy0wLjYyNC0xLjM4Ni0xLjEwOC0yLjczMS0xLjM5Mi00LjAwNA0KCQljLTAuNjk3LTIuMTMxLTEuMTAyLTQuNTYzLTEuMTAyLTcuMDI3YzAtOC41NDksNC42NTItMTYuNDM1LDEyLjEzOS0yMC41ODJjOC45MTItNC44NzcsMjAuNDc4LTMuMjUxLDI3LjY1NCwzLjY1NA0KCQljNy4xNDYtNi45MDUsMTguNzU4LTguNTE5LDI3LjYzOS0zLjY1NGM3LjQ4OSw0LjE1OSwxMi4xNDcsMTIuMDM5LDEyLjE0NywyMC41ODhjMCwyLjQ2My0wLjM5Niw0LjkwMS0xLjE3NSw3LjI1Mg0KCQljLTMuNzUxLDE2Ljg2MS0zNS45OTMsMzcuMjkzLTM3LjM3NSwzOC4xNTVjLTAuMzg3LDAuMjM0LTAuODA0LDAuMzUzLTEuMjM2LDAuMzUzYy0wLjQyMywwLTAuODU5LTAuMTE5LTEuMjI3LTAuMzUzDQoJCWMtMC42NTUtMC40MTQtMTYuMS0xMC4xNi0yNy4wNDgtMjEuNzMyYy0wLjg5Mi0wLjkyOS0wLjg1NS0yLjQwNSwwLjA4NS0zLjI4NWMwLjkzNS0wLjg5MywyLjQxNS0wLjg1LDMuMjg1LDAuMDk0DQoJCWM4LjgwNSw5LjI4OSwyMS4wMiwxNy42MjUsMjQuOTA1LDIwLjE4M2M1LjkxOC0zLjg5NiwzMS4xMjgtMjEuMTc1LDM0LjE0Mi0zNC42NWMwLjY2NC0yLjEwMSwwLjk4Ni00LjA0NiwwLjk4Ni02LjAxNg0KCQljMC02Ljg1NC0zLjczOC0xMy4xNzQtOS43NDItMTYuNDk5Yy03Ljc4Mi00LjI2NS0xNy45NTQtMi4zMTktMjMuNTgzLDQuNDg1Yy0wLjQzNiwwLjUzLTEuMTAyLDAuODQtMS43OTEsMC44NGwwLDANCgkJYy0wLjY4NSwwLTEuMzUyLTAuMzA1LTEuNzg3LTAuODRjLTUuNjI2LTYuNzU5LTE1Ljg0NC04LjczMi0yMy42MTQtNC40NzljLTYuMDA0LDMuMzE5LTkuNzM5LDkuNjQ1LTkuNzM5LDE2LjQ5OQ0KCQljMCwxLjk2NCwwLjMyMywzLjkxNSwwLjkyOCw1LjgwNmMwLjM4NywxLjcwMiwxLjE0MiwzLjQzNCwyLjEyNSw1LjIyNGgxMS4wNDJsMy41NzQtNS45OTFjMC40MTEtMC42OTEsMS4xNTQtMS4xMjQsMS45NTItMS4xNDINCgkJYzAuMDEyLDAsMC4wMzEsMCwwLjA0MiwwYzAuNzg2LDAsMS41MjgsMC4zOTMsMS45NTIsMS4wNTlsNS41MDgsOC40NzZsNi40MjEtMTcuMzg1YzAuMzM4LTAuOTE2LDEuMjAzLTEuNTIyLDIuMTg5LTEuNTIybDAsMA0KCQljMC45NzEsMCwxLjg0NSwwLjYwNiwyLjE4OSwxLjUxNmw1LjU4NiwxNC45NzdoOS43MzRjMS4yODQsMCwyLjMyNiwxLjA0MSwyLjMyNiwyLjMzMnMtMS4wNDIsMi4zMzItMi4zMjYsMi4zMzJoLTExLjMzOA0KCQljLTAuOTcxLDAtMS44NTEtMC42MTItMi4xOTUtMS41MTZsLTMuOTU4LTEwLjYybC01Ljg1NSwxNS44NTljLTAuMzA0LDAuODIyLTEuMDUzLDEuNDA2LTEuOTI3LDEuNTA3DQoJCWMtMC4wODgsMC4wMDYtMC4xNjcsMC4wMTMtMC4yNjIsMC4wMTNjLTAuNzc5LDAtMS41MTYtMC4zOTMtMS45NDUtMS4wNmwtNS45OTgtOS4yMzRsLTIuMzM4LDMuOTE1DQoJCWMtMC40MjMsMC43MDctMS4xNzksMS4xNDItMS45OTUsMS4xNDJINjUuMTM5QzYzLjgzNiw3Mi4wODQsNjIuNzk0LDcxLjA0Myw2Mi43OTQsNjkuNzUyeiBNMjIzLjM2MywxNDcuMDE0DQoJCWMtMS42OTMsNC43ODctOC45MzksMTMuOTI2LTE2LjYxMSwyMy42MDhjLTYuMDc3LDcuNjY2LTEyLjM2MSwxNS42MDYtMTUuNDA1LDIwLjc2NGMtMC40MzgsMC43NDMtMS4yMDYsMS4xNTEtMi4wMSwxLjE1MQ0KCQljLTAuNDAyLDAtMC44MDQtMC4xMS0xLjE4Mi0wLjMyM2MtMS4xMDgtMC42NTEtMS40NjEtMi4wODMtMC44MTUtMy4xOWMzLjIwMy01LjQzOCw5LjU5LTEzLjUsMTUuNzU5LTIxLjI5NA0KCQljMC4yNjgtMC4zNDEsMC41NDItMC42NzYsMC44MS0xLjAyMmMtNy4xNTQsMy4zODUtMTMuODQxLDQuMjk5LTE2LjIwMyw0LjUyOWMtMTEuNzE2LDEwLjQ5OC0yNC44NDQsMTMuMTE2LTM1LjAyNSwxMy4xMTYNCgkJYy05LjY4MiwwLTE2LjY5Ni0yLjM2OC0xNy4yOC0yLjU3NWMtMC4xMjItMC4wMzctMC4xOTUtMC4xMjgtMC4zMDUtMC4xNzdjLTAuMDYxLTAuMDI0LTAuMTIyLTAuMDEzLTAuMTcxLTAuMDQ5DQoJCWMtNC42NTEtMi45MzUtMTIuMTI2LTQuMTUzLTE1LjI5My00LjU1NWMtMS40NzksMi4zMzItMy4xOTMsMy4yMzktMy40MjUsMy4zNDljLTYuMjk2LDIuMDM0LTEwLjcyOSwyLjAyOC0xMy41MDMsMC4xMTYNCgkJYy0xLjMwNi0wLjg5Ni0xLjk1MS0xLjk5Ny0yLjI4OS0yLjg2OGMtMS41MTctMC45NDktMi4yMi0yLjEzNy0yLjU1Mi0zLjAyYy0wLjMxMS0wLjg1OS0wLjM3NC0xLjY4Mi0wLjMyMi0yLjM3NQ0KCQljLTEuNzcyLTEuNjMzLTIuMDQ2LTQuMDMxLTEuNjktNi4wMDRjLTEuMDUzLTEuMzQ2LTEuMDkzLTIuNjkxLTAuOTg2LTMuNDcxYzAuNTc1LTQuMDkyLDYuOTktNy4yNCw5Ljg4OS04LjQ1OA0KCQljMS4wNzUtMS41MTEsMi40NjktMi4wMSwzLjUwNC0yLjE1NWMzLjg5MS0wLjUzLDguNDE4LDMuMzg1LDEwLjMxNSw1LjI0OGwxMi40NjctMC4xMjhjLTIuOTUzLTUuNjQ1LTQuMjUtMTAuOTExLTQuODExLTE0LjQ2OA0KCQljLTguMzc1LDYuMTI2LTE2LjgxMiw1Ljc3OS0yNC4xMjUsNC41MDZjLTguNjQ5LTEuNTEtMTQuNzkxLTQuMzI5LTE2LjcxMS01LjI4NWMtOS4yMzQsMC40NjktMTguODk4LTEuNzE3LTI4LjY1LTYuNTcNCgkJYy01Ljk3OSw0Ljg2NS0xMy42MTIsNy43OTUtMjEuOTEyLDcuNzk1QzE1LjYyNSwxNDMuMjA5LDAsMTI3LjU5LDAsMTA4LjM4NXMxNS42MjUtMzQuODI0LDM0LjgzLTM0LjgyNA0KCQljMTkuMTk5LDAsMzQuODE4LDE1LjYxOSwzNC44MTgsMzQuODI0YzAsMS4xMjYtMC4wNjEsMi4yMjMtMC4xNTUsMy4zMjRjNy41ODcsMi4xMTMsMTIuNzY5LDQuMTg0LDE1LjI4NCw1LjI5OA0KCQljNy4zNzQtOC41MjQsMjcuMzQtMTAuNjYyLDMyLjI5Ny0xMS4wNThjMTQuMDk5LTEzLjQwOSwyOS43NjEtNS42MjEsMzQuMzY0LTIuODI2bDYuMjI0LTMuNjU0bC0wLjEzNC02LjM0Mg0KCQljLTIuNjY3LTIuNTMzLTMuODQ5LTcuNzI3LTQuMjk5LTEwLjM4OGMtNC40Ny0yLjY1OC00LjQyMS0xMS40NjktNC4zNDgtMTMuMzc1Yy0wLjI2OS0xLjU4MywwLjY5My0yLjYxOCwxLjI5Ny0zLjA2Mg0KCQljMC41MDUtMC4zNzUsMS4wNzctMC41NjYsMS42NS0wLjYzN2MtMC4yNDQtMy4wNDgtMC41LTYuMzE0LTAuNS02LjczMWMwLTE0LjQ4LDE0Ljg5NS0xOC40MTQsMjIuNzU2LTE4LjQ3Mg0KCQljNi41MzMsMC4zMjYsMTEuNDE3LDIuNjE1LDE0LjY2OCw2LjgwNWM0LjI4MSw1LjUxMSw0LjUzNywxMi45MDYsNC4yMjcsMTcuMjQ1YzAuNDUsMC4wOTQsMC44ODMsMC4yNjIsMS4yNzgsMC41MjcNCgkJYzIuMDgzLDEuMzcsMS45MTgsNC4zODcsMS43MTcsNS43NTRjMC43MzEsNi4yOTYtMi43MzksMTAuMTg4LTQuNTU1LDExLjc2OGMtMC4xNjQsMi45ODMtMC45MTksNS4xNzktMS4yNjcsNi4wNTNsLTAuNDAxLDQuMDI4DQoJCWMyLjM1MSw2LjEwNCwxNy44MTEsMTYuMTk0LDI3LjIzNiwyMS4yMTdDMjMwLjUxMSwxMTcuOTU3LDIyNC4xMjksMTQ0LjA1NSwyMjMuMzYzLDE0Ny4wMTR6IE0zNC44MywxMzguNTMyDQoJCWMxNi42MzYsMCwzMC4xNjYtMTMuNTMsMzAuMTY2LTMwLjE2NmMwLTE2LjYyOS0xMy41My0zMC4xNjYtMzAuMTY2LTMwLjE2NmMtMTYuNjM1LDAtMzAuMTcyLDEzLjUzLTMwLjE3MiwzMC4xNjYNCgkJUzE4LjE5NSwxMzguNTMyLDM0LjgzLDEzOC41MzJ6IE0yMTkuMzY4LDE0My42MDRjMC4wMTMtMC4wMDcsMC4wMTMtMC4wMTksMC4wMjQtMC4wMjRjMS42NjktNy43NTIsMy4zMjUtMjMuMTQ1LTQuMjI2LTI1LjQ1OQ0KCQljLTMuMTQyLTEuNjI2LTI3LjEyMS0xNC42NzUtMzAuMDY4LTI0LjU3Yy0wLjA4NS0wLjI5Mi0wLjEyMi0wLjYwNi0wLjA4NS0wLjkwNGwwLjQ5OS00Ljg3NWMwLjAzNy0wLjI2OCwwLjEwOS0wLjUyMywwLjIxMy0wLjc2MQ0KCQljMC4wMDctMC4wMDYsMS4wMjMtMi4yNjYsMS4wMjMtNS42MzNjMC0wLjc5NywwLjQwOC0xLjUzNCwxLjA4NC0xLjk1OGMwLjE1Mi0wLjExMyw0LjIyLTIuODYyLDMuNDUyLTguMzU0DQoJCWMtMC4wMzYtMC4yNDQtMC4wMzYtMC41LDAuMDEzLTAuNzM3YzAuMDM2LTAuMjE2LDAuMDYxLTAuNDU5LDAuMDg1LTAuNjk3Yy0wLjc3OSwwLjQzNi0xLjcyOSwwLjQwNS0yLjQ3My0wLjA4OA0KCQljLTAuNzc5LTAuNTIzLTEuMTY5LTEuNDcxLTAuOTg2LTIuMzkzYzAuMDI0LTAuMTEzLDIuMDgzLTEwLjY0NC0yLjg5OC0xNy4wNDFjLTIuMzc0LTMuMDYyLTYuMTAxLTQuNzQtMTEuMDY5LTQuOTkNCgkJYy0wLjU5NywwLjAwNi0xOCwwLjM0NC0xOCwxMy44MTNjMC4wMjQsMC43OTIsMC43Myw5LjM3NywwLjczLDkuMzc3YzAuMDczLDAuODI4LTAuMzExLDEuNjMyLTAuOTk4LDIuMTA3DQoJCWMtMC42NDYsMC40NTYtMS40NzQsMC41MzYtMi4yMDQsMC4yNDNjMC4xMjEsMy45OTgsMS4wMTEsNy44NzMsMi4yODksOC4xMzVjMC45NzUsMC4yMDEsMS43MTEsMS4wMDQsMS44MzksMS45OTENCgkJYzAuNDc1LDMuNzg1LDEuOTM3LDguMzU0LDMuMzI1LDkuMTMzYzAuNzI1LDAuMzk5LDEuMTc1LDEuMTY3LDEuMTg3LDEuOTgybDAuMTg5LDguODE3YzAuMDE4LDAuODQzLTAuNDIxLDEuNjM1LTEuMTU3LDIuMDU4DQoJCWwtOC42NDYsNS4wNjNjLTAuODEsMC40NzUtMS44MTQsMC40MDEtMi41NjktMC4xMzFjLTAuNjU4LTAuNDg3LTE2LjMzMS0xMS44MDQtMzAuMjQyLDIuMTI4Yy0wLjM5OSwwLjM5LTAuOTIyLDAuNjQtMS40ODIsMC42NjQNCgkJYy03LjA2MywwLjQ4LTI2LjM0NSwzLjMxMi0zMC43NDgsMTAuNjEzYy0wLjYzLDEuMDQ3LTEuOTY0LDEuNDMxLTMuMDQ3LDAuODcxYy0wLjA2NC0wLjAzMS01LjU3NS0yLjc5NS0xNS43NDQtNS42NzYNCgkJYy0xLjM5Miw1LjkzMS00LjI5LDExLjI3MS04LjI5MywxNS42MTNjOC42NzQsNC4wMywxNy4xODksNS44OTQsMjUuMzIyLDUuMzU3YzAuNDExLTAuMDE4LDAuODc3LDAuMDY3LDEuMjcsMC4yOA0KCQljMC4wNywwLjAzLDYuNDE4LDMuNDQsMTUuOTAyLDUuMDk3YzcuNTUxLDEuMzEsMTUuNjI1LDEuNDc0LDIzLjU4My02LjIyOWMwLjY4My0wLjY1MiwxLjY4Ny0wLjgyOCwyLjUyMS0wLjQ2OQ0KCQljMC44NjQsMC4zNjUsMS40MzEsMS4yMDUsMS40MzEsMi4xNDNjMCwwLjA5OCwwLjE2NCw4Ljc1LDUuNDU2LDE4LjE1OGMxNi4xLTcuOTU5LDM2LjUwNC04LjI5Myw0My40NTItOC4xNDcNCgkJYzAuNjY0LTE1Ljg1Niw3Ljg0OS0yMC44MjUsOC4xNjUtMjEuMDQ0YzEuMDYtMC43MTksMi41MDMtMC40MjYsMy4yNCwwLjY0NmMwLjcsMS4wNiwwLjQyNiwyLjQ5LTAuNjM0LDMuMjIxDQoJCWMtMC4xMzQsMC4xMTYtNi4xNSw0LjY4My02LjE1LDE5LjYwN2MwLDAuNjQ2LTAuMjU1LDEuMjQ4LTAuNzMsMS42OTJjLTAuNDYzLDAuNDM4LTEuMTU2LDAuNjQ2LTEuNzI5LDAuNjM0DQoJCWMtMC4yNjgtMC4wMjQtMjYuNjA5LTEuNDc5LTQ0Ljg3Nyw4LjI2M2MtMC40MiwwLjQwOC0wLjkzMiwwLjctMS41MjgsMC43MTNsLTE3LjQ1NCwwLjE4M2MtMC43NzMsMC4wMDYtMS4yNzYtMC4yNjMtMS43MTQtMC43MzENCgkJYy0yLjE5NS0yLjMxOS01LjU2OC00LjczLTcuMDE1LTQuNTcyYy0wLjEwMSwwLjAxMi0wLjI1NiwwLjA0My0wLjQ4NywwLjQ4Yy0wLjI1NSwwLjUtMC42ODUsMC44OTYtMS4yMDMsMS4wOTcNCgkJYy0zLjY3OCwxLjQ1NS03LjQ1NiwzLjkzNC03LjcwNiw1LjAzNWMwLjAzNywwLDAuMTMxLDAuMTM0LDAuMzg3LDAuMzI5YzAuODQsMC42MzMsMS4xNTQsMS43NiwwLjc0OSwyLjczNA0KCQljLTAuMTMxLDAuMzI4LTAuNzM2LDIuMDgyLDAuNDg0LDIuNjI0YzAuNTYzLDAuMjU2LDEuMDExLDAuNzI1LDEuMjI0LDEuMzE1YzAuMjE2LDAuNTkxLDAuMTg2LDEuMjM2LTAuMDgyLDEuODAzDQoJCWMtMC4zOCwwLjkzMiwwLjM4NywxLjQzMSwxLjExNywxLjc1M2MwLjc4NiwwLjM1OSwxLjMxNSwxLjEyNywxLjM3LDEuOTg1YzAsMCwwLjExMywwLjQzMywwLjcsMC44MDQNCgkJYzAuNzE2LDAuNDQ0LDMuMDIzLDEuMjYxLDguOTc5LTAuNjI3Yy0wLjEsMCwwLjk3Mi0wLjcxOSwxLjgxNS0yLjUyN2MwLjM5OS0wLjg5NiwxLjI3OS0xLjQzMSwyLjI5OC0xLjM0Ng0KCQljMC40NzUsMC4wNDMsMTEuNTUyLDEuMDIzLDE4LjUyOSw1LjIzN2MxLjQzMSwwLjQ2MywyNy42ODgsOC42ODMsNDguMTA0LTEwLjE1MWMwLjM5LTAuMzcxLDAuOTEzLTAuNTkxLDEuNDYxLTAuNjIxDQoJCUMxODcuNjQ0LDE2Ni41OTcsMjExLjgwNSwxNjUuMDUxLDIxOS4zNjgsMTQzLjYwNHogTTEwNS41NDksMTIzLjEyN2MtMS4wODMsMC42ODgtMS40LDIuMTMxLTAuNjk3LDMuMjE1DQoJCWMwLjY4NSwxLjA5LDIuMTM0LDEuMzk1LDMuMjI0LDAuNzEyYzE2LjQyOS0xMC41MSwyNi45MzMsMS4yNjcsMjcuMzgzLDEuNzc4YzAuNDU3LDAuNTI5LDEuMTA4LDAuODA0LDEuNzYsMC44MDQNCgkJYzAuNTM2LDAsMS4wNzgtMC4xODgsMS41MS0wLjU2MWMwLjk2OS0wLjg0LDEuMDk3LTIuMzAyLDAuMjU2LTMuMjc1QzEzOC44NDUsMTI1LjYzNSwxMjUuNDkyLDExMC4zOTUsMTA1LjU0OSwxMjMuMTI3eg0KCQkgTTIwNC44MDMsMTI3LjQ4Yy0xLjIxOCwwLjM5LTEuOSwxLjcxMS0xLjQ4NiwyLjk0YzAuMDQ5LDAuMTY1LDUuNDIsMTcuMTQyLTYuNTUyLDI0LjYzMWMtMS4wODQsMC42NzYtMS40MTksMi4xMTMtMC43MywzLjIwOQ0KCQljMC40MzgsMC43MDYsMS4xOTMsMS4wOSwxLjk3MywxLjA5YzAuNDE0LDAsMC44NTMtMC4xMDksMS4yMjQtMC4zNTNjMTIuMDM4LTcuNTIxLDEwLjgyLTIyLjkzMiw4LjQ5NS0zMC4wMg0KCQlDMjA3LjMzNSwxMjcuNzQyLDIwNi4wMjcsMTI3LjA3MiwyMDQuODAzLDEyNy40OHogTTQ0Ljg3NCwxMDguMzY2YzAsNS41NDgtNC41MDYsMTAuMDU0LTEwLjA0NCwxMC4wNTQNCgkJYy01LjU1LDAtMTAuMDQ0LTQuNTE5LTEwLjA0NC0xMC4wNTRzNC41MDYtMTAuMDQ0LDEwLjA0NC0xMC4wNDRTNDQuODc0LDEwMi44MzEsNDQuODc0LDEwOC4zNjZ6IE00MC4yMTksMTA4LjM2Ng0KCQljMC0yLjk3NS0yLjQyMS01LjM5Mi01LjM4OS01LjM5MmMtMi45OCwwLTUuMzkyLDIuNDIzLTUuMzkyLDUuMzkyYzAsMi45NzgsMi40MjQsNS4zOTYsNS4zOTIsNS4zOTYNCgkJQzM3LjgwNSwxMTMuNzY4LDQwLjIxOSwxMTEuMzQ0LDQwLjIxOSwxMDguMzY2eiBNMjkuNjI0LDk0LjQ0M3YtMy42NjZsMS4xMTctMS4xNDJsMy4yNzksNC44MDhoMS40ODloMS40ODVsLTQuNjQ2LTYuNDY3DQoJCWw0LjM1MS00LjQ1MWgtMS40NGgtMS40NTJsLTQuMTc3LDQuNTIxdi00LjUyMWgtMS4xNTRIMjcuMzR2MTAuOTE4aDEuMTQ4SDI5LjYyNHogTTQzLjQwNCw4Ni4zNjNoMi4wMDl2Ny42NTENCgkJYzAsMS4yODUtMC4zMiwyLjIxOS0wLjkzOCwyLjgyOWMtMC42NDgsMC42MDUtMS42MjUsMC45MS0yLjk1OSwwLjkxYy0xLjEwNSwwLTEuOTczLTAuMjEtMi42MjctMC42NA0KCQljLTAuNjQ4LTAuNDMyLTAuOTktMS4wMjItMS4wMzUtMS43NzhoMi4zMDhjMC4wMjQsMC4yNzQsMC4xNDMsMC40ODEsMC4zODcsMC42MDNjMC4yMzEsMC4xMzQsMC42LDAuMTg4LDEuMDg0LDAuMTg4DQoJCWMwLjYxMiwwLDEuMDM1LTAuMTM3LDEuMzAzLTAuNDI5YzAuMjU1LTAuMjksMC4zODYtMC43NjcsMC4zODYtMS40Mjh2LTAuOTk4bC0wLjE2MSwwLjI2MmMtMC40NzIsMC42NDgtMS4xNTQsMC45NzEtMi4wMTksMC45NzENCgkJYy0xLjA2MiwwLTEuOTE1LTAuMzg3LTIuNTUxLTEuMTMyYy0wLjY0OC0wLjc0OS0wLjk2NS0xLjc0OC0wLjk2NS0yLjk4N2MwLTEuMjcyLDAuMzE3LTIuMjk1LDAuOTM1LTMuMDY4DQoJCWMwLjYzNi0wLjc3MywxLjQ1OC0xLjE1NCwyLjQ4MS0xLjE1NGMwLjkwNCwwLDEuNjA3LDAuMzI2LDIuMTA3LDAuOTg2YzAuMTAxLDAuMTI1LDAuMTgsMC4yNjIsMC4yNTYsMC4zOTlWODYuMzYzTDQzLjQwNCw4Ni4zNjN6DQoJCSBNNDMuMzQ5LDkwLjM1NGMwLTAuNzQ5LTAuMTUyLTEuMzI0LTAuNDY5LTEuNzQ4Yy0wLjMyMy0wLjQxMS0wLjc1NS0wLjYzLTEuMzA5LTAuNjNzLTAuOTgsMC4yMTMtMS4yOTcsMC42MzcNCgkJYy0wLjMxMSwwLjQyMy0wLjQ2MywxLjAxMS0wLjQ2MywxLjc2NmMwLDAuNzMzLDAuMTUyLDEuMzA5LDAuNDYzLDEuNzI3YzAuMzE2LDAuNDExLDAuNzQzLDAuNjI0LDEuMjkxLDAuNjI0DQoJCWMwLjU2LDAsMC45OTItMC4yMTMsMS4zMTUtMC42M0M0My4xOTcsOTEuNjc2LDQzLjM0OSw5MS4wODgsNDMuMzQ5LDkwLjM1NHoiLz4NCjwvZz4NCjwvc3ZnPg==" style="width:32px;height:32px;filter:invert(1) brightness(2);display:block;margin:0 auto 4px;" alt="Active Rest"></div>
+      <div class="wt-name">Active Rest</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Recovery day</div>
+    </div>
   </div>
   <div id="session-form"></div>
 </div>
@@ -1269,7 +1274,14 @@ function renderSessionForm() {
     </div>`;
   }
 
-  if (['SPAR','CAR','MTT'].includes(t)) {
+  if (t === 'AR') {
+    html += `<p class="section-label">Activity description</p>
+    <div class="card">
+      <textarea id="f-ar-description" placeholder="What did you do? (e.g. easy walk, stretching, foam rolling, swimming...)" style="width:100%;min-height:80px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:10px;font-family:var(--font);resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+    </div>`;
+  }
+
+  if (['SPAR','CAR','MTT','AR'].includes(t)) {
     html += `<p class="section-label">Screenshot</p>
     <div class="card">
       <input type="file" id="f-photo" accept="image/*" style="display:none;" onchange="handlePhotoSelect(this)">
@@ -1436,6 +1448,11 @@ function saveSession() {
     mttData.comments = document.getElementById('f-mtt-comments')?.value || '';
   }
 
+  let arData = {};
+  if (t === 'AR') {
+    arData.description = document.getElementById('f-ar-description')?.value || '';
+  }
+
   let zoneData = {};
   if (t === 'CAR') {
     ['Bike','Run','Stair','Other'].forEach(type => {
@@ -1463,7 +1480,8 @@ function saveSession() {
     sets,
     rounds,
     zoneData,
-    mttData
+    mttData,
+    arData
   };
 
   // Store pending session and show stretch modal
@@ -1580,7 +1598,7 @@ function updateStreak() {
   }
 }
 
-const TYPE_LABELS = { A: 'Workout A', B: 'Workout B', C: 'Workout C', BAG: 'Bag Work', SPAR: 'Sparring', CAR: 'Zone 2', MTT: 'MT Technical' };
+const TYPE_LABELS = { A: 'Workout A', B: 'Workout B', C: 'Workout C', BAG: 'Bag Work', SPAR: 'Sparring', CAR: 'Zone 2', MTT: 'MT Technical', AR: 'Active Rest' };
 
 function renderHistory() {
   const sessions = getSessions();
@@ -1696,6 +1714,12 @@ function viewSession(id) {
       detailHTML += `<p class="section-label" style="margin-top:16px;">Comments</p>
       <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;white-space:pre-wrap;">${s.mttData.comments}</p></div>`;
     }
+  }
+
+  // Active Rest description
+  if (t === 'AR' && s.arData && s.arData.description) {
+    detailHTML += `<p class="section-label" style="margin-top:16px;">Activity description</p>
+    <div class="card"><p style="font-size:14px;color:var(--text);line-height:1.6;margin:0;white-space:pre-wrap;">${s.arData.description}</p></div>`;
   }
 
   // Screenshot
@@ -1834,7 +1858,12 @@ function editSession(id) {
         <div class="info-field" style="margin-bottom:12px;"><label>Techniques drilled</label><textarea id="edit-mtt-techniques" placeholder="Techniques, combinations, concepts covered...">${s.mttData?.techniques||''}</textarea></div>
         <div class="info-field"><label>Comments</label><textarea id="edit-mtt-comments" placeholder="Corrections received, things to revisit...">${s.mttData?.comments||''}</textarea></div>
       </div>` : ''}
-      ${['SPAR','CAR','MTT'].includes(t) ? `
+      ${t === 'AR' ? `
+      <p class="section-label" style="margin-top:16px;">Active Rest</p>
+      <div class="card">
+        <div class="info-field"><label>Activity description</label><textarea id="edit-ar-description" placeholder="What did you do?">${s.arData?.description||''}</textarea></div>
+      </div>` : ''}
+      ${['SPAR','CAR','MTT','AR'].includes(t) ? `
       <p class="section-label" style="margin-top:16px;">Screenshot</p>
       <div class="card">
         <input type="file" id="edit-photo" accept="image/*" style="display:none;" onchange="handleEditPhotoSelect(this)">
@@ -1860,7 +1889,7 @@ function editSession(id) {
   window._editTechniques = [...(s.techniques || [])];
   window._editRating = s.rating || 0;
   window._editPhoto = s.photo || null;
-  if (['SPAR','CAR','MTT'].includes(t)) {
+  if (['SPAR','CAR','MTT','AR'].includes(t)) {
     renderPhotoZone('edit-photo-preview-wrap', window._editPhoto, 'edit-photo', 'clearEditPhotoSelection()');
   }
 }
@@ -1893,7 +1922,7 @@ function saveEditSession(id) {
   s.video = document.getElementById('edit-video')?.value || '';
   s.rating = window._editRating || s.rating;
   s.techniques = [...(window._editTechniques || [])];
-  if (['SPAR','CAR','MTT'].includes(s.type)) {
+  if (['SPAR','CAR','MTT','AR'].includes(s.type)) {
     s.photo = window._editPhoto || null;
   }
 
@@ -1902,6 +1931,12 @@ function saveEditSession(id) {
       goal: document.getElementById('edit-mtt-goal')?.value || '',
       techniques: document.getElementById('edit-mtt-techniques')?.value || '',
       comments: document.getElementById('edit-mtt-comments')?.value || ''
+    };
+  }
+
+  if (s.type === 'AR') {
+    s.arData = {
+      description: document.getElementById('edit-ar-description')?.value || ''
     };
   }
 
@@ -2530,7 +2565,7 @@ function calTap(dateStr) {
   const sessions = getSessions().filter(s => s.date === dateStr);
   const cal = getCalendar();
   const planned = cal[dateStr] || [];
-  const types = ['A','B','C','BAG','SPAR','MTT','CAR','REST'];
+  const types = ['A','B','C','BAG','SPAR','MTT','CAR','AR','REST'];
 
   // Format date nicely
   const d = new Date(dateStr + 'T00:00:00');
