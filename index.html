@@ -1045,22 +1045,22 @@ const WORKOUT_EXERCISES = {
     { name: 'Hanging knee raises', reps: '15–20' },
   ],
   D: [
-    { name: 'Swiss ball crunch', reps: '3×12', note: 'arms crossed' },
+    { name: 'Swiss ball crunch', reps: '3×12', bw: true, note: 'arms crossed' },
     { name: 'Decline bench lean-back hold', reps: '3×20–30s', hold: true },
     { name: 'Cable knee drive (each side)', reps: '3×10', note: 'ankle strap' },
-    { name: '45° back extension', reps: '3×12', note: 'bodyweight' },
+    { name: '45° back extension', reps: '3×12', bw: true, note: 'bodyweight' },
     { name: '45° side bend (each side)', reps: '3×10' },
-    { name: 'Decline cross-body sit-up (each side)', reps: '3×8' },
+    { name: 'Decline cross-body sit-up (each side)', reps: '3×8', bw: true },
   ],
   E: [
-    { name: 'Heel-tap dead bug (each side)', reps: '3×10', note: 'arms flat by sides' },
-    { name: 'Reverse crunch', reps: '3×12', note: 'arms flat by sides' },
-    { name: 'Lying straight-leg raise', reps: '3×10', note: 'arms flat by sides' },
+    { name: 'Heel-tap dead bug (each side)', reps: '3×10', bw: true, note: 'arms flat by sides' },
+    { name: 'Reverse crunch', reps: '3×12', bw: true, note: 'arms flat by sides' },
+    { name: 'Lying straight-leg raise', reps: '3×10', bw: true, note: 'arms flat by sides' },
     { name: 'Hollow hold', reps: '3×20s', hold: true, note: 'arms by sides' },
-    { name: 'Side-lying leg lift (each side)', reps: '3×10', note: 'head on pillow, not arm' },
-    { name: 'Prone back extension', reps: '3×12', note: 'arms by sides' },
-    { name: 'Glute bridge march (each side)', reps: '3×10' },
-    { name: 'Standing cross-body knee drive (each side)', reps: '3×12', note: 'hands on hips' },
+    { name: 'Side-lying leg lift (each side)', reps: '3×10', bw: true, note: 'head on pillow, not arm' },
+    { name: 'Prone back extension', reps: '3×12', bw: true, note: 'arms by sides' },
+    { name: 'Glute bridge march (each side)', reps: '3×10', bw: true },
+    { name: 'Standing cross-body knee drive (each side)', reps: '3×12', bw: true, note: 'hands on hips' },
   ]
 };
 
@@ -1229,10 +1229,7 @@ function renderSessionForm() {
         <div class="exercise-name">${ex.name}<span class="exercise-rep-tag">${ex.reps}</span>${ex.note ? `<span style="font-size:10px;color:var(--text3);margin-left:6px;">${ex.note}</span>` : ''}</div>
         <div class="set-header-row"><span>Set 1</span><span>Set 2</span><span>Set 3</span></div>
         <div class="sets-grid">
-          ${[1,2,3].map(s => `<div class="set-split">
-            <div><span class="set-split-label">kg</span><input type="number" step="0.5" placeholder="0" data-ex="${i}" data-set="${s}" data-field="weight" class="set-inp-w"></div>
-            <div><span class="set-split-label">reps</span><input type="number" placeholder="0" data-ex="${i}" data-set="${s}" data-field="reps" class="set-inp-r"></div>
-          </div>`).join('')}
+          ${[1,2,3].map(s => setInputsHTML(ex, i, s, 'set-inp-w', 'set-inp-r', '', '')).join('')}
         </div>
       </div>`;
     });
@@ -1575,6 +1572,55 @@ function parseSetStr(raw) {
   };
 }
 
+// Exercise kinds: 'hold' (seconds, stored in the first slot), 'bw' (reps only), 'strength' (kg / reps)
+function exKind(ex) { return ex.hold ? 'hold' : (ex.bw ? 'bw' : 'strength'); }
+// Seconds for a hold set — older logs may have the number in either slot
+function holdSecs(raw) {
+  const { weight, reps } = parseSetStr(raw || '');
+  return parseFloat(weight) || parseFloat(reps) || 0;
+}
+// Human-readable set value for history views
+function fmtSet(ex, raw) {
+  if (!raw || !String(raw).trim()) return '';
+  const k = exKind(ex);
+  if (k === 'hold') { const v = holdSecs(raw); return v ? v + 's' : ''; }
+  const { weight, reps } = parseSetStr(raw);
+  if (k === 'bw' && !(parseFloat(weight) > 0)) return reps ? reps + ' reps' : '';
+  return raw;
+}
+// Inputs for one set, by exercise kind
+function setInputsHTML(ex, i, n, wCls, rCls, w, r) {
+  const k = exKind(ex);
+  if (k === 'hold') return `<div class="set-split" style="grid-template-columns:1fr;">
+    <div><span class="set-split-label">sec</span><input type="number" placeholder="0" value="${w || r || ''}" data-ex="${i}" data-set="${n}" data-field="weight" class="${wCls}"></div></div>`;
+  if (k === 'bw') return `<div class="set-split" style="grid-template-columns:1fr;">
+    <div><span class="set-split-label">reps</span><input type="number" placeholder="0" value="${r || ''}" data-ex="${i}" data-set="${n}" data-field="reps" class="${rCls}"></div>
+    ${parseFloat(w) > 0 ? `<input type="hidden" value="${w}" data-ex="${i}" data-set="${n}" class="${wCls}">` : ''}</div>`;
+  return `<div class="set-split">
+    <div><span class="set-split-label">kg</span><input type="number" step="0.5" placeholder="0" value="${w || ''}" data-ex="${i}" data-set="${n}" data-field="weight" class="${wCls}"></div>
+    <div><span class="set-split-label">reps</span><input type="number" placeholder="0" value="${r || ''}" data-ex="${i}" data-set="${n}" data-field="reps" class="${rCls}"></div>
+  </div>`;
+}
+// Personal best from an exercise's progress entries
+function calcPb(ex, entries) {
+  const keys = Object.keys(entries || {}).filter(k => k !== 'pb');
+  if (ex.hold) {
+    const best = Math.max(0, ...keys.map(k => parseHoldEntry(entries[k])));
+    return best ? best + 's' : '';
+  }
+  let pbWeight = 0, pbReps = 0;
+  keys.forEach(k => {
+    const val = entries[k];
+    if (typeof val === 'string') {
+      const parts = val.split('/');
+      const w = parseFloat(parts[0]) || 0;
+      const r = parseFloat(parts[1]) || 0;
+      if (w > pbWeight || (w === pbWeight && r > pbReps)) { pbWeight = w; pbReps = r; }
+    }
+  });
+  return pbWeight ? pbWeight + 'kg / ' + pbReps + ' reps' : (pbReps ? pbReps + ' reps' : '');
+}
+
 function syncToProgress(wt, date, sets) {
   const p = getProgress();
   if (!p[wt]) p[wt] = {};
@@ -1588,6 +1634,14 @@ function syncToProgress(wt, date, sets) {
     if (parsedSets.every(s => !s.weight && !s.reps)) return;
 
     if (!p[wt][exIdx]) p[wt][exIdx] = {};
+
+    if (ex.hold) {
+      const best = Math.max(0, ...[1, 2, 3].map(n => holdSecs(rawSets[n] || rawSets[String(n)] || '')));
+      if (best) p[wt][exIdx][date] = best + 's';
+      const pb = calcPb(ex, p[wt][exIdx]);
+      if (pb) p[wt][exIdx].pb = pb;
+      return;
+    }
 
     // Find the best set from this session (highest weight)
     let bestWeight = 0, bestReps = 0;
@@ -1699,7 +1753,7 @@ function viewSession(id) {
     const exs = WORKOUT_EXERCISES[t];
     const rows = exs.map((ex, i) => {
       const sets = s.sets[i] || {};
-      const setVals = [1,2,3].map(n => sets[n] || '—').join(' · ');
+      const setVals = [1,2,3].map(n => fmtSet(ex, sets[n]) || '—').join(' · ');
       if (!Object.values(sets).some(v=>v)) return '';
       return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:13px;color:var(--text);flex:1;">${ex.name}</span>
@@ -1828,10 +1882,7 @@ function editSession(id) {
               const parts = raw.split('/');
               const w = parts[0]?parts[0].trim():'';
               const r = parts[1]?parts[1].trim():'';
-              return `<div class="set-split">
-                <div><span class="set-split-label">kg</span><input type="number" step="0.5" placeholder="0" value="${w}" data-ex="${i}" data-set="${n}" data-field="weight" class="edit-inp-w"></div>
-                <div><span class="set-split-label">reps</span><input type="number" placeholder="0" value="${r}" data-ex="${i}" data-set="${n}" data-field="reps" class="edit-inp-r"></div>
-              </div>`;
+              return setInputsHTML(ex, i, n, 'edit-inp-w', 'edit-inp-r', w, r);
             }).join('')}
           </div>
         </div>`;
@@ -2046,23 +2097,9 @@ function deleteSession(id) {
           if (p[wt][exIdx]) {
             delete p[wt][exIdx][date];
             // Recalculate PB from remaining entries
-            let pbWeight = 0, pbReps = 0;
-            Object.keys(p[wt][exIdx]).filter(k => k !== 'pb').forEach(k => {
-              const val = p[wt][exIdx][k];
-              if (typeof val === 'string') {
-                const parts = val.split('/');
-                const w = parseFloat(parts[0]) || 0;
-                const r = parseFloat(parts[1]) || 0;
-                if (w > pbWeight || (w === pbWeight && r > pbReps)) { pbWeight = w; pbReps = r; }
-              }
-            });
-            if (pbWeight) {
-              p[wt][exIdx].pb = pbWeight + 'kg / ' + pbReps + ' reps';
-            } else if (pbReps) {
-              p[wt][exIdx].pb = pbReps + ' reps';
-            } else {
-              delete p[wt][exIdx].pb;
-            }
+            const pb = calcPb(exs[exIdx], p[wt][exIdx]);
+            if (pb) p[wt][exIdx].pb = pb;
+            else delete p[wt][exIdx].pb;
           }
         });
         saveProgress(p);
@@ -2126,8 +2163,8 @@ function parseStrengthEntry(raw) {
   return { w: nums[0] || 0, r: nums[1] || 0 };
 }
 function parseHoldEntry(raw) {
-  const m = String(raw).match(/[\d.]+/);
-  return m ? parseFloat(m[0]) : 0;
+  const nums = (String(raw).match(/[\d.]+/g) || []).map(Number);
+  return nums.find(n => n > 0) || 0;
 }
 
 function buildProgressChart(entries, dates, mode, type) {
@@ -2472,6 +2509,10 @@ function renderSparProgress() {
 }
 
 
+function entriesHaveWeight(entries) {
+  return Object.keys(entries || {}).some(k => k !== 'pb' && typeof entries[k] === 'string' && !/s\s*$/.test(entries[k]) && (parseFloat(entries[k].split('/')[0]) || 0) > 0);
+}
+
 function renderProgress() {
   ['A','B','C','D','E'].forEach(wt => {
     const el = document.getElementById('progress-' + wt);
@@ -2497,6 +2538,8 @@ function renderProgress() {
       }
       const mode = progChartMode[key];
       const type = ex.hold ? 'hold' : 'strength';
+      if (ex.bw && !entriesHaveWeight(entries)) progChartMode[key] = 'reps';
+      const showToggle = type !== 'hold' && !(ex.bw && !entriesHaveWeight(entries));
 
       // Build chart
       const chartSVG = allDates.length >= 1 ? buildProgressChart(entries, allDates, mode, type) : '';
@@ -2509,7 +2552,7 @@ function renderProgress() {
         ${chartSVG ? `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
             <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${type === 'hold' ? 'Hold time (s)' : (mode === 'weight' ? 'Weight (kg)' : 'Reps')} over time</span>
-            ${type === 'hold' ? '' : `<div style="display:flex;gap:4px;">
+            ${!showToggle ? '' : `<div style="display:flex;gap:4px;">
               <button onclick="setProgChartMode('${wt}',${i},'weight')" style="background:${mode==='weight'?'#C0392B':'var(--bg4)'};border:1px solid ${mode==='weight'?'#C0392B':'var(--border)'};border-radius:5px;color:${mode==='weight'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Weight</button>
               <button onclick="setProgChartMode('${wt}',${i},'reps')" style="background:${mode==='reps'?'#5B9BD5':'var(--bg4)'};border:1px solid ${mode==='reps'?'#5B9BD5':'var(--border)'};border-radius:5px;color:${mode==='reps'?'white':'var(--text3)'};font-size:10px;font-weight:600;padding:3px 8px;cursor:pointer;">Reps</button>
             </div>`}
@@ -2520,14 +2563,14 @@ function renderProgress() {
         <div class="progress-weeks" id="pw-${wt}-${i}">
           ${allDates.length ? allDates.map(d => `<div class="progress-week" style="width:62px;">
             <label style="font-size:9px;white-space:nowrap;">${shortDate(d)}</label>
-            <input type="text" value="${entries[d]||''}" placeholder="${type === 'hold' ? '30s' : '90kg x 10'}" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
+            <input type="text" value="${entries[d]||''}" placeholder="${type === 'hold' ? '30s' : (ex.bw ? '12' : '90kg x 10')}" data-wt="${wt}" data-ex="${i}" data-week="${d}" onchange="saveProgressEntry(this)">
           </div>`).join('') : ''}
         </div>
 
         <div style="margin-top:8px;">
           <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">${type === 'hold' ? 'Best hold' : 'Personal best'}</label>
           <input type="text" style="background:var(--bg3);border:1px solid rgba(212,160,23,.3);border-radius:6px;color:var(--gold);font-size:13px;padding:5px 8px;width:100%;margin-top:3px;outline:none;font-family:var(--font);"
-            placeholder="${type === 'hold' ? 'e.g. 45s' : 'e.g. 90kg x 10'}" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
+            placeholder="${type === 'hold' ? 'e.g. 45s' : (ex.bw ? 'e.g. 15 reps' : 'e.g. 90kg x 10')}" value="${pb}" data-wt="${wt}" data-ex="${i}" data-week="pb" onchange="saveProgressEntry(this)">
         </div>
       </div>`;
     }).join('');
@@ -2689,7 +2732,7 @@ function closeCalModal() {
     if (!p[wt]) return;
     const loggedDates = new Set(sessions.filter(s => s.type === wt).map(s => s.date));
     const exs = WORKOUT_EXERCISES[wt] || [];
-    exs.forEach((_, exIdx) => {
+    exs.forEach((ex, exIdx) => {
       if (!p[wt][exIdx]) return;
       Object.keys(p[wt][exIdx]).filter(k => k !== 'pb' && k.match(/^\d{4}-\d{2}-\d{2}$/)).forEach(date => {
         if (!loggedDates.has(date)) {
@@ -2698,17 +2741,7 @@ function closeCalModal() {
         }
       });
       // Recalculate PB from remaining entries
-      let pbWeight = 0, pbReps = 0;
-      Object.keys(p[wt][exIdx]).filter(k => k !== 'pb').forEach(k => {
-        const val = p[wt][exIdx][k];
-        if (typeof val === 'string') {
-          const parts = val.split('/');
-          const w = parseFloat(parts[0]) || 0;
-          const r = parseFloat(parts[1]) || 0;
-          if (w > pbWeight || (w === pbWeight && r > pbReps)) { pbWeight = w; pbReps = r; }
-        }
-      });
-      const newPb = pbWeight ? pbWeight + 'kg / ' + pbReps + ' reps' : (pbReps ? pbReps + ' reps' : '');
+      const newPb = calcPb(ex, p[wt][exIdx]);
       if (newPb !== (p[wt][exIdx].pb || '')) {
         if (newPb) p[wt][exIdx].pb = newPb;
         else delete p[wt][exIdx].pb;
